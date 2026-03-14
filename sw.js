@@ -1,4 +1,4 @@
-const CACHE_NAME = 'test-app-v31';
+const CACHE_NAME = 'test-app-v34';
 const ASSETS = [
     './',
     './index.html',
@@ -14,6 +14,7 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
+            console.log("SW: Precaching assets...");
             return cache.addAll(ASSETS);
         })
     );
@@ -24,17 +25,36 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
-                    if (key !== CACHE_NAME) return caches.delete(key);
+                    if (key !== CACHE_NAME) {
+                        console.log("SW: Deleting old cache:", key);
+                        return caches.delete(key);
+                    }
                 })
             );
         })
     );
 });
 
+// ESTRATEGIA: Network First (Prioriza red para actualizaciones rápidas)
 self.addEventListener('fetch', (event) => {
+    // Ignorar peticiones de chrome-extension o esquemas no soportados
+    if (!event.request.url.startsWith('http')) return;
+
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
-        })
+        fetch(event.request)
+            .then((response) => {
+                // Si la red responde bien, actualizamos el cache
+                if (response && response.status === 200 && response.type === 'basic') {
+                    const responseToCache = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseToCache);
+                    });
+                }
+                return response;
+            })
+            .catch(() => {
+                // Si falla la red (offline), tiramos del cache
+                return caches.match(event.request);
+            })
     );
 });

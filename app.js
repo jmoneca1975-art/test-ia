@@ -12,7 +12,7 @@ const app = {
             const debugBanner = document.createElement('div');
             debugBanner.id = "debug-init";
             debugBanner.style = "position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;z-index:9999;padding:2px;pointer-events:none;";
-            debugBanner.textContent = "Booting v31...";
+            debugBanner.textContent = "Booting v34...";
             document.body.appendChild(debugBanner);
 
             this.setupPdfJS();
@@ -138,6 +138,13 @@ const app = {
             this.currentIndex = 0;
             this.score = 0;
             
+            console.log("Asignando preguntas generadas:", questions);
+            if (!Array.isArray(questions)) {
+                console.error("FORMAT ERROR: questions no es un array!", questions);
+                throw new Error("Formato de IA incorrecto (no es lista).");
+            }
+            this.currentQuestions = questions; 
+            
             // Persistencia Automática con nombre personalizado o sugerido
             const finalName = this.currentTestName || topic.split('\n')[0].substring(0, 30) || "Test IA";
             this.saveToLibrary(`IA: ${finalName}`, questions);
@@ -153,11 +160,17 @@ const app = {
     },
 
     triggerFilePicker(accept) {
+        console.log("Abriendo selector para:", accept);
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = accept;
+        input.style.display = 'none';
+        document.body.appendChild(input); // <--- AÑADIR AL DOM
+        
         input.onchange = (e) => {
             const file = e.target.files[0];
+            console.log("Archivo seleccionado:", file ? file.name : "ninguno");
+            document.body.removeChild(input); // <--- QUITAR DEL DOM
             if (!file) return;
             if (accept === '.txt') this.handleImportTxt(file);
             if (accept === '.pdf') this.handlePdfGeneration(file);
@@ -240,7 +253,11 @@ const app = {
         ProgressTracker.updateStatus("Extrayendo texto del PDF...");
 
         try {
+            if (!window.pdfjsLib) {
+                throw new Error("La librería PDF.js no se ha cargado correctamente. Comprueba tu conexión a internet.");
+            }
             const textToProcess = await this.extractPdfText(file, parseInt(start), parseInt(end));
+            console.log("Texto extraído con éxito (" + textToProcess.length + " caracteres)");
             overlay.classList.add('hidden');
             
             // Forzar navegación a config y rellenar textarea
@@ -250,10 +267,11 @@ const app = {
                 topicEl.value = textToProcess;
                 topicEl.scrollTop = 0;
             }
-            alert(`Se ha extraído el texto de las páginas ${start}-${end}. Ahora pulsa "Generar" para crear el test.`);
+            alert(`✅ Texto extraído con éxito. Ahora pulsa "Generar" para crear el test.`);
         } catch (err) {
+            console.error("PDF EXTRACTION ERROR:", err);
             overlay.classList.add('hidden');
-            alert("Error al extraer PDF: " + err.message);
+            alert("❌ Error al extraer PDF: " + err.message + "\n\n(Asegúrate de que el PDF no tiene contraseña)");
         }
     },
 
