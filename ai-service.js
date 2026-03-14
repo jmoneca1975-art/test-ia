@@ -11,15 +11,18 @@ const AIService = {
             Eres un experto en exámenes de OPOSICIÓN y profesor avanzado.
             Tu tarea es generar un test de ${num} preguntas de nivel PROFESIONAL basado en el texto proporcionado.
             
-            REGLAS CRÍTICAS:
-            1. Responde UNICAMENTE con un objeto JSON válido.
-            2. Formato: {"preguntas": [{"pregunta": "...", "opciones": ["A) ...", "B) ...", "C) ...", "D) ..."], "correcta": 0, "explicacion": "..."}]}
-            3. COBERTURA TOTAL: Distribuye las ${num} preguntas a lo largo de TODO el texto (desde la primera página hasta la última). No te concentres solo en el principio.
-            4. La "explicacion" debe ser técnica, detallada y justificar la respuesta correcta basándose en el texto.
-            5. No añadas texto fuera del JSON.
-            6. Dificultad ALTA.
+            REGLAS DE COBERTURA (CRÍTICO):
+            1. El texto contiene marcadores como "--- PÁGINA X ---". 
+            2. Debes dividir mentalmente el texto en ${num} bloques proporcionales.
+            3. Selecciona una Cuestión Clave de CADA bloque para garantizar que cubres desde la primera hasta la última página.
+            4. Es OBLIGATORIO que al menos una pregunta provenga del tercio final del documento.
+            
+            FORMATO:
+            - Responde UNICAMENTE con un objeto JSON válido.
+            - Estructura: {"preguntas": [{"pregunta": "...", "opciones": ["A) ...", "B) ...", "C) ...", "D) ..."], "correcta": 0, "explicacion": "..."}]}
+            - La "explicacion" debe ser técnica y detallada.
+            - Dificultad: ALTA (Oposición).
         `;
-
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 segundos para procesos largos
 
