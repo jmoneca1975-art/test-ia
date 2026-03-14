@@ -13,7 +13,7 @@ const app = {
             const debugBanner = document.createElement('div');
             debugBanner.id = "debug-init";
             debugBanner.style = "position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;z-index:9999;padding:2px;pointer-events:none;";
-            debugBanner.textContent = "Booting v37...";
+            debugBanner.textContent = "Booting v39...";
             document.body.appendChild(debugBanner);
 
             // Inicializar Créditos
@@ -117,6 +117,7 @@ const app = {
         });
 
         window.scrollTo(0, 0);
+        console.log("Cambiado a vista:", viewId);
     },
 
     async generateQuiz() {

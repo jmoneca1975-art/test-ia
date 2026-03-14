@@ -176,16 +176,17 @@ textarea {
     bottom: 0;
     width: 100%;
     height: auto;
-    padding: 12px 12px calc(12px + var(--safe-bottom));
-    background: rgba(15, 23, 42, 0.85);
+    padding: 10px 5px calc(10px + var(--safe-bottom));
+    background: rgba(15, 23, 42, 0.95);
     backdrop-filter: blur(20px);
     border-top: 1px solid var(--border);
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     z-index: 100;
 }
 
 .tab-item {
+    flex: 1;
     background: none;
     border: none;
     color: var(--text-dim);
@@ -194,6 +195,7 @@ textarea {
     align-items: center;
     gap: 4px;
     cursor: pointer;
+    min-width: 0;
 }
 
 .tab-item.active { color: var(--primary); }
