@@ -5,10 +5,6 @@ const app = {
     currentPdfFile: null,
     currentTestName: "",
     creditBalance: 0,
-    stripeLinks: {
-        pack1000: "success_sim.html", // Reemplazar con tu link real de Stripe
-        pack5000: "success_sim.html"  // Reemplazar con tu link real de Stripe
-    },
     
     init() {
         try {
@@ -17,12 +13,12 @@ const app = {
             const debugBanner = document.createElement('div');
             debugBanner.id = "debug-init";
             debugBanner.style = "position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;z-index:9999;padding:2px;pointer-events:none;";
-            debugBanner.textContent = "Booting v40...";
+            debugBanner.textContent = "Booting v42...";
             document.body.appendChild(debugBanner);
 
             // Inicializar Créditos
             this.initCredits();
-            this.checkStripePayment();
+            // Eliminada detección de Stripe (Vuelve Bizum)
 
             this.setupPdfJS();
             this.setupEventListeners();
@@ -703,12 +699,7 @@ const app = {
     },
 
     rechargeCredits(packKey) {
-        const url = this.stripeLinks[packKey];
-        if (url) {
-            window.location.href = url;
-        } else {
-            alert("Error: Enlace de pago no configurado.");
-        }
+        alert("Sigue las instrucciones de Bizum arriba para recargar créditos. 😊");
     },
 
     redeemCode() {
@@ -720,12 +711,16 @@ const app = {
             return;
         }
 
-        // --- SISTEMA DE CÓDIGOS (Vía 1) ---
-        // Aquí puedes definir los códigos que vendes por Bizum
+        // --- SISTEMA DE CÓDIGOS ALFANUMÉRICOS (v42) ---
         const validCodes = {
-            "PRO-1000-TEST": 1000,
-            "BIZUM-OK-2024": 1000,
-            "PREMIUM-5000": 5000,
+            // Pack 1000 Preguntas
+            "TK-7R2-X89": 1000, "TK-4M1-V52": 1000, "TK-9B6-L10": 1000, "TK-3N4-P77": 1000, "TK-8W2-Z41": 1000,
+            "TK-5K9-S33": 1000, "TK-2H7-D68": 1000, "TK-6G5-Q94": 1000, "TK-1F8-R22": 1000, "TK-0S3-T55": 1000,
+            "QA-RY7-X3D": 1000, "QA-LP4-K8G": 1000, "QA-BV2-M9S": 1000, "QA-WZ8-N1F": 1000, "QA-JH6-C5R": 1000,
+            "QA-TK9-P2W": 1000, "QA-HD4-L7X": 1000, "QA-GS1-Y6Z": 1000, "QA-FR3-V0H": 1000, "QA-MN5-B2Q": 1000,
+            "BT-9Z2-K4F": 1000, "BT-1X7-N8D": 1000, "BT-5V4-L2G": 1000, "BT-8C6-M9X": 1000, "BT-3R1-P5W": 1000,
+            "BT-7K0-S3Z": 1000, "BT-2H5-Y1C": 1000, "BT-6G9-Q4R": 1000, "BT-0F4-D8B": 1000, "BT-4S2-T6L": 1000,
+            // Maestros (Legacy)
             "WELCOME-QA": 500
         };
 
@@ -767,18 +762,7 @@ const app = {
     },
 
     checkStripePayment() {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('payment') === 'success') {
-            const amount = parseInt(params.get('amount')) || 1000;
-            const session = params.get('session_id');
-            
-            this.applyCredits(amount, `STRIPE_${session}`);
-            
-            // Limpiar la URL para que no se recargue al refrescar
-            window.history.replaceState({}, document.title, window.location.pathname);
-            
-            this.switchView('settings-view');
-        }
+        // Obsoleto en v41 (Retorno a Bizum)
     }
 };
 

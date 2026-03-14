@@ -184,31 +184,25 @@
                 </div>
 
                 <div class="section-header">
-                    <h3>Recargar Preguntas (Pago Automático)</h3>
+                    <h3>Recargar Preguntas (Bizum)</h3>
                 </div>
 
-                <div class="recharge-options">
-                    <div class="recharge-item highlight" onclick="app.rechargeCredits('pack1000')">
-                        <div class="recharge-info">
-                            <span class="q-count">1000 Preguntas</span>
-                            <span class="price">2.99€ / pago único</span>
-                        </div>
-                        <button class="btn-buy stripe-btn">Comprar</button>
-                    </div>
-                    
-                    <div class="recharge-item" onclick="app.rechargeCredits('pack5000')">
-                        <div class="recharge-info">
-                            <span class="q-count">5000 Preguntas</span>
-                            <span class="price">9.99€ / ahorro 20%</span>
-                        </div>
-                        <button class="btn-buy stripe-btn">Comprar</button>
-                    </div>
+                <div class="bizum-instructions">
+                    <p>Para recargar 1000 preguntas por 2.99€:</p>
+                    <ol>
+                        <li>Envía <strong>2.99€</strong> por Bizum al número: <br> <strong>6XX XXX XXX</strong></li>
+                        <li>Indica tu nombre en el concepto.</li>
+                        <li>Recibirás un código que podrás canjear abajo.</li>
+                    </ol>
                 </div>
 
                 <div class="redeem-box">
-                    <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 8px;">¿Tienes un código de activación manual?</p>
+                    <h3>Canjear Código</h3>
                     <input type="text" id="activation-code" placeholder="Introduce tu código aquí...">
-                    <button class="btn-primary" onclick="app.redeemCode()">Canjear Código</button>
+                    <button class="btn-primary" onclick="app.redeemCode()">Activar preguntas</button>
+                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 10px; text-align: center;">
+                        Los códigos son de un solo uso.
+                    </p>
                 </div>
 
                 <div class="section-header">
