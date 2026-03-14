@@ -1,4 +1,4 @@
-const CACHE_NAME = 'test-app-v28';
+const CACHE_NAME = 'test-app-v31';
 const ASSETS = [
     './',
     './index.html',
@@ -6,12 +6,8 @@ const ASSETS = [
     './app.js',
     './ai-service.js',
     './manifest.json',
-    './icon-192.png',
-    './icon-512.png',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;800&display=swap',
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js'
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js'
 ];
 
 self.addEventListener('install', (event) => {

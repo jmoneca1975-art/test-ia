@@ -12,7 +12,7 @@ const app = {
             const debugBanner = document.createElement('div');
             debugBanner.id = "debug-init";
             debugBanner.style = "position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;z-index:9999;padding:2px;pointer-events:none;";
-            debugBanner.textContent = "Booting v28...";
+            debugBanner.textContent = "Booting v31...";
             document.body.appendChild(debugBanner);
 
             this.setupPdfJS();
@@ -49,6 +49,9 @@ const app = {
     setupEventListeners() {
         // Botón nuevo test
         document.getElementById('btn-new-test').addEventListener('click', () => {
+            // Limpiar estado previo para nuevo test manual
+            this.currentTestName = "";
+            document.getElementById('test-topic').value = "";
             this.switchView('config-view');
         });
 
@@ -240,8 +243,13 @@ const app = {
             const textToProcess = await this.extractPdfText(file, parseInt(start), parseInt(end));
             overlay.classList.add('hidden');
             
+            // Forzar navegación a config y rellenar textarea
             this.switchView('config-view');
-            document.getElementById('test-topic').value = textToProcess;
+            const topicEl = document.getElementById('test-topic');
+            if (topicEl) {
+                topicEl.value = textToProcess;
+                topicEl.scrollTop = 0;
+            }
             alert(`Se ha extraído el texto de las páginas ${start}-${end}. Ahora pulsa "Generar" para crear el test.`);
         } catch (err) {
             overlay.classList.add('hidden');
