@@ -4,8 +4,8 @@ const AIService = {
     API_URL: 'https://api.deepseek.com/chat/completions',
 
     async generateQuestions(topic, num = 5) {
-        // Recortar texto si es excesivo para evitar lentitud
-        const truncatedTopic = topic.length > 5000 ? topic.substring(0, 5000) + "..." : topic;
+        // Ampliamos el límite de texto para PDFs de hasta 20 páginas
+        const truncatedTopic = topic.length > 40000 ? topic.substring(0, 40000) + "..." : topic;
 
         const systemPrompt = `
             Eres un experto en exámenes de OPOSICIÓN y profesor avanzado.
@@ -20,10 +20,10 @@ const AIService = {
         `;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 50000); // 50 segundos
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 segundos para procesos largos
 
         try {
-            console.log("Generando test multidisciplinar...");
+            console.log(`Generando test de ${num} preguntas sobre texto de ${truncatedTopic.length} caracteres...`);
             const response = await fetch(this.API_URL, {
                 method: 'POST',
                 headers: {
@@ -37,7 +37,7 @@ const AIService = {
                         { role: "user", content: `Analiza este texto y genera el test: ${truncatedTopic}` }
                     ],
                     temperature: 0.5,
-                    max_tokens: 3000
+                    max_tokens: 6000 // Aumentado para tests largos
                 }),
                 signal: controller.signal
             });
