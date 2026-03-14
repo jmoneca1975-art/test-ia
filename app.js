@@ -13,7 +13,7 @@ const app = {
             const debugBanner = document.createElement('div');
             debugBanner.id = "debug-init";
             debugBanner.style = "position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;z-index:9999;padding:2px;pointer-events:none;";
-            debugBanner.textContent = "Booting v44...";
+            debugBanner.textContent = "Booting v45...";
             document.body.appendChild(debugBanner);
 
             // Inicializar Créditos
@@ -299,14 +299,17 @@ const app = {
         
         const safeEnd = Math.min(end, pdf.numPages);
         const safeStart = Math.max(1, start);
+        console.log(`PDF Extraction: Start=${safeStart}, End=${safeEnd}, Total Pages=${pdf.numPages}`);
 
         for (let i = safeStart; i <= safeEnd; i++) {
             ProgressTracker.updateStatus(`Leyendo página ${i} de ${safeEnd}...`);
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
             const pageText = content.items.map(item => item.str).join(' ');
+            console.log(`Página ${i} extraída: ${pageText.length} caracteres.`);
             fullText += `--- PÁGINA ${i} ---\n${pageText}\n\n`;
         }
+        console.log(`Extracción finalizada. Total acumulado: ${fullText.length} caracteres.`);
         return fullText;
     },
 

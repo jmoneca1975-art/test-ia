@@ -1,4 +1,4 @@
-const CACHE_NAME = 'test-app-v43-1'; // Usamos v43-1 para asegurar refresco
+const CACHE_NAME = 'test-app-v45';
 const ASSETS = [
     './',
     './index.html',

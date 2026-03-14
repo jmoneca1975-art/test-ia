@@ -4,19 +4,20 @@ const AIService = {
     API_URL: 'https://api.deepseek.com/chat/completions',
 
     async generateQuestions(topic, num = 5) {
-        // Ampliamos el límite de texto para PDFs de hasta 20 páginas
-        const truncatedTopic = topic.length > 40000 ? topic.substring(0, 40000) + "..." : topic;
+        // Límite ampliado a 100k para PDFs muy densos (20-30 páginas)
+        const truncatedTopic = topic.length > 100000 ? topic.substring(0, 100000) + "..." : topic;
 
         const systemPrompt = `
             Eres un experto en exámenes de OPOSICIÓN y profesor avanzado.
             Tu tarea es generar un test de ${num} preguntas de nivel PROFESIONAL basado en el texto proporcionado.
             
-            REGLAS CRÍTICAS DE FORMATO:
+            REGLAS CRÍTICAS:
             1. Responde UNICAMENTE con un objeto JSON válido.
             2. Formato: {"preguntas": [{"pregunta": "...", "opciones": ["A) ...", "B) ...", "C) ...", "D) ..."], "correcta": 0, "explicacion": "..."}]}
-            3. La "explicacion" debe ser técnica, detallada y justificar la respuesta correcta basándose en el texto.
-            4. No añadas texto fuera del JSON (como "Aquí tienes tu test...").
-            5. El test debe ser de dificultad ALTA, analizando matices del texto.
+            3. COBERTURA TOTAL: Distribuye las ${num} preguntas a lo largo de TODO el texto (desde la primera página hasta la última). No te concentres solo en el principio.
+            4. La "explicacion" debe ser técnica, detallada y justificar la respuesta correcta basándose en el texto.
+            5. No añadas texto fuera del JSON.
+            6. Dificultad ALTA.
         `;
 
         const controller = new AbortController();
