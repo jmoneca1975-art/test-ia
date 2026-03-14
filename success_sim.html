@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulador Stripe Success</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f4f4f9; color: #333; }
+        .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        .success-icon { font-size: 4rem; color: #635bff; margin-bottom: 20px; }
+        .btn { background: #635bff; color: white; padding: 15px 30px; border-radius: 12px; text-decoration: none; font-weight: bold; margin-top: 20px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="success-icon">💳✅</div>
+        <h1>¡Pago Simulado con Éxito!</h1>
+        <p>Has "comprado" 1000 preguntas para tu App.</p>
+        <p>Ahora, haz clic en el botón de abajo para volver y activar tus créditos.</p>
+        <a id="return-link" href="#" class="btn">Volver a mi App</a>
+    </div>
+
+    <script>
+        // Detectar si estamos en local o en GitHub para construir el enlace de vuelta
+        const isLocal = window.location.hostname === 'localhost';
+        const baseUrl = isLocal ? 'http://localhost:8080/' : 'https://jmoneca1975-art.github.io/test-ia/';
+        const successUrl = `${baseUrl}?payment=success&amount=1000&session_id=SIM_SESSION_${Date.now()}`;
+        
+        document.getElementById('return-link').href = successUrl;
+    </script>
+</body>
+</html>

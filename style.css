@@ -388,3 +388,116 @@ textarea {
 }
 .dark-card .label { color: white !important; }
 .dark-card .icon { background: rgba(255,255,255,0.2) !important; }
+/* CREDIT BADGE */
+.credit-badge {
+    background: rgba(99, 102, 241, 0.15);
+    padding: 6px 14px;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.credit-badge .icon { font-size: 1rem; }
+#credit-balance { font-weight: 800; font-family: 'Outfit'; color: #818cf8; }
+
+/* SETTINGS VIEW */
+.settings-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(16, 185, 129, 0.1));
+    padding: 30px;
+    border-radius: 24px;
+    margin-bottom: 30px;
+    text-align: center;
+    border: 1px solid var(--border);
+}
+
+.balance-info h3 { font-size: 1rem; color: var(--text-dim); margin-bottom: 10px; }
+.large-balance { font-size: 3.5rem; font-weight: 800; font-family: 'Outfit'; margin-bottom: 10px; }
+.large-balance .icon { font-size: 2.5rem; }
+
+.recharge-options { display: grid; gap: 16px; margin-bottom: 30px; }
+.recharge-item {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border);
+    transition: transform 0.2s;
+}
+
+.recharge-item:active { transform: scale(0.98); }
+.recharge-item.highlight { border-color: var(--primary); background: rgba(99, 102, 241, 0.1); }
+
+.recharge-info { display: flex; flex-direction: column; gap: 2px; }
+.q-count { font-weight: 700; font-size: 1.1rem; }
+.price { font-size: 0.85rem; color: var(--text-dim); }
+
+.btn-buy {
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: var(--primary);
+    border: none;
+    color: white;
+    font-weight: 700;
+    transition: background 0.2s;
+}
+
+.stripe-btn {
+    background: #635bff;
+    box-shadow: 0 4px 10px rgba(99, 91, 255, 0.3);
+}
+
+.stripe-btn:hover {
+    background: #534dbd;
+}
+
+.settings-list { background: var(--card-bg); border-radius: 20px; overflow: hidden; border: 1px solid var(--border); }
+.settings-item {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+}
+.settings-item:last-child { border-bottom: none; }
+.settings-item input { background: transparent; border: none; color: white; text-align: right; font-weight: 600; }
+
+.btn-danger {
+    padding: 8px 16px;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid #ef4444;
+    color: #ef4444;
+}
+
+/* BIZUM INSTRUCTIONS */
+.bizum-instructions {
+    background: rgba(99, 102, 241, 0.05);
+    padding: 20px;
+    border-radius: 16px;
+    border-left: 4px solid var(--primary);
+    margin-bottom: 24px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.bizum-instructions ol { padding-left: 20px; margin-top: 10px; }
+.bizum-instructions li { margin-bottom: 8px; }
+
+/* REDEEM BOX */
+.redeem-box { display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; }
+.redeem-box input {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: white;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-align: center;
+}

@@ -4,6 +4,7 @@ const app = {
     score: 0,
     currentPdfFile: null,
     currentTestName: "",
+    creditBalance: 0,
     
     init() {
         try {
@@ -12,8 +13,12 @@ const app = {
             const debugBanner = document.createElement('div');
             debugBanner.id = "debug-init";
             debugBanner.style = "position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;z-index:9999;padding:2px;pointer-events:none;";
-            debugBanner.textContent = "Booting v34...";
+            debugBanner.textContent = "Booting v37...";
             document.body.appendChild(debugBanner);
+
+            // Inicializar Créditos
+            this.initCredits();
+            this.checkStripePayment();
 
             this.setupPdfJS();
             this.setupEventListeners();
@@ -123,6 +128,12 @@ const app = {
             return;
         }
 
+        if (this.creditBalance < numQ) {
+            alert(`⚠️ Saldo insuficiente. Necesitas ${numQ} créditos y solo tienes ${this.creditBalance}.\nRecarga tu saldo en Ajustes.`);
+            this.switchView('settings-view');
+            return;
+        }
+
         const overlay = document.getElementById('loading-overlay');
         overlay.classList.remove('hidden');
 
@@ -145,6 +156,11 @@ const app = {
             }
             this.currentQuestions = questions; 
             
+            // Descontar créditos
+            this.creditBalance -= questions.length;
+            localStorage.setItem('credit_balance', this.creditBalance);
+            this.updateCreditUI();
+
             // Persistencia Automática con nombre personalizado o sugerido
             const finalName = this.currentTestName || topic.split('\n')[0].substring(0, 30) || "Test IA";
             this.saveToLibrary(`IA: ${finalName}`, questions);
@@ -669,6 +685,92 @@ const app = {
                 btnReview.style.opacity = '1';
                 btnReview.style.pointerEvents = 'auto';
             }
+        }
+    },
+
+    // --- CRÉDITOS & MONETIZACIÓN ---
+    updateCreditUI() {
+        const balanceEls = ['credit-balance', 'settings-credit-balance'];
+        balanceEls.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = this.creditBalance;
+        });
+    },
+
+    rechargeCredits(amount) {
+        this.creditBalance += amount;
+        localStorage.setItem('credit_balance', this.creditBalance);
+        this.updateCreditUI();
+        alert(`✅ ¡Recarga de ${amount} créditos completada!`);
+    },
+
+    redeemCode() {
+        const input = document.getElementById('activation-code');
+        const code = input.value.trim().toUpperCase();
+        
+        if (!code) {
+            alert("Por favor, introduce un código.");
+            return;
+        }
+
+        // --- SISTEMA DE CÓDIGOS (Vía 1) ---
+        // Aquí puedes definir los códigos que vendes por Bizum
+        const validCodes = {
+            "PRO-1000-TEST": 1000,
+            "BIZUM-OK-2024": 1000,
+            "PREMIUM-5000": 5000,
+            "WELCOME-QA": 500
+        };
+
+        if (validCodes[code]) {
+            this.applyCredits(validCodes[code], code);
+            input.value = "";
+        } else {
+            alert("❌ Código no válido. Contacta con soporte si has realizado el pago por Bizum.");
+        }
+    },
+
+    initCredits() {
+        const savedCredits = localStorage.getItem('credit_balance');
+        if (savedCredits === null) {
+            this.creditBalance = 500;
+            localStorage.setItem('credit_balance', 500);
+        } else {
+            this.creditBalance = parseInt(savedCredits);
+        }
+        this.updateCreditUI();
+    },
+
+    applyCredits(amount, codeId) {
+        // Evitar duplicados
+        const used = JSON.parse(localStorage.getItem('used_codes') || '[]');
+        if (used.includes(codeId)) {
+            alert("❌ Estos créditos ya han sido canjeados.");
+            return;
+        }
+
+        used.push(codeId);
+        localStorage.setItem('used_codes', JSON.stringify(used));
+
+        this.creditBalance += amount;
+        localStorage.setItem('credit_balance', this.creditBalance);
+        this.updateCreditUI();
+        
+        alert(`🎉 ¡ÉXITO! Se han añadido ${amount} preguntas a tu saldo.`);
+    },
+
+    checkStripePayment() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('payment') === 'success') {
+            const amount = parseInt(params.get('amount')) || 1000;
+            const session = params.get('session_id');
+            
+            this.applyCredits(amount, `STRIPE_${session}`);
+            
+            // Limpiar la URL para que no se recargue al refrescar
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            this.switchView('settings-view');
         }
     }
 };

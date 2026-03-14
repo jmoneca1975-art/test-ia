@@ -25,7 +25,10 @@
             <header class="app-header">
                 <div class="header-content">
                     <h1>test_app <span class="accent">AI</span></h1>
-                    <p>Tu mente, potenciada por IA</p>
+                    <div id="credit-badge" class="credit-badge">
+                        <span class="icon">💎</span>
+                        <span id="credit-balance">500</span>
+                    </div>
                 </div>
                 <div class="user-avatar">
                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=JD" alt="User">
@@ -166,6 +169,64 @@
             </div>
         </div>
 
+        <!-- Settings / Monetization View -->
+        <section id="settings-view" class="view">
+            <nav class="top-nav">
+                <h2>Ajustes y Saldo</h2>
+            </nav>
+            <main class="content-padding">
+                <div class="settings-card">
+                    <div class="balance-info">
+                        <h3>Tu Saldo Actual</h3>
+                        <div class="large-balance"><span class="icon">💎</span> <span id="settings-credit-balance">500</span></div>
+                        <p>Preguntas disponibles para generar con IA.</p>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <h3>Recargar Preguntas (Pago Automático)</h3>
+                </div>
+
+                <div class="recharge-options">
+                    <div class="recharge-item highlight" onclick="window.location.href='success_sim.html'">
+                        <div class="recharge-info">
+                            <span class="q-count">1000 Preguntas</span>
+                            <span class="price">2.99€ (Demo Stripe)</span>
+                        </div>
+                        <button class="btn-buy stripe-btn">Probar Pago</button>
+                    </div>
+                    
+                    <div class="recharge-item" onclick="window.location.href='success_sim.html'">
+                        <div class="recharge-info">
+                            <span class="q-count">5000 Preguntas</span>
+                            <span class="price">9.99€ (Demo Stripe)</span>
+                        </div>
+                        <button class="btn-buy stripe-btn">Probar Pago</button>
+                    </div>
+                </div>
+
+                <div class="redeem-box">
+                    <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 8px;">¿Tienes un código de activación manual?</p>
+                    <input type="text" id="activation-code" placeholder="Introduce tu código aquí...">
+                    <button class="btn-primary" onclick="app.redeemCode()">Canjear Código</button>
+                </div>
+
+                <div class="section-header">
+                    <h3>Configuración de Usuario</h3>
+                </div>
+                <div class="settings-list">
+                    <div class="settings-item">
+                        <span>Nombre de Usuario</span>
+                        <input type="text" value="Invitado" disabled>
+                    </div>
+                    <div class="settings-item">
+                        <span>Borrar todo el historial</span>
+                        <button class="btn-danger" onclick="if(confirm('¿Seguro?')) {localStorage.clear(); location.reload();}">Borrar</button>
+                    </div>
+                </div>
+            </main>
+        </section>
+
         <!-- Tab Bar -->
         <nav class="tab-bar">
             <button class="tab-item active" onclick="app.switchView('home-view')">
@@ -180,7 +241,7 @@
                 <span class="icon">⏳</span>
                 <span class="label">Historial</span>
             </button>
-            <button class="tab-item">
+            <button id="tab-settings" class="tab-item" onclick="app.switchView('settings-view')">
                 <span class="icon">⚙️</span>
                 <span class="label">Ajustes</span>
             </button>
