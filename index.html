@@ -113,15 +113,18 @@
             </nav>
             <main class="content-padding">
                 <div class="input-group">
-                    <label>¿De qué trata el test?</label>
-                    <textarea id="test-topic"
-                        placeholder="Ej: Ley de protección de datos, Anatomía humana..."></textarea>
-                    <div style="margin-top: 8px;">
+                    <label for="test-topic">Tema o Texto Extraído:</label>
+                    <textarea id="test-topic" placeholder="Pega aquí el texto, el temario o extrae un PDF..."></textarea>
+                    <div id="extraction-stats" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 5px; display: flex; justify-content: space-between;">
+                        <span id="stats-pages">Páginas: 0</span>
+                        <span id="stats-chars">Caracteres: 0</span>
+                    </div>
+                </div>
+                <div style="margin-top: 8px;">
                         <button type="button" class="btn-secondary" onclick="app.triggerFilePicker('.pdf')" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
                             📂 Cargar texto desde PDF
                         </button>
                     </div>
-                </div>
                 <div class="input-group">
                     <label>Número de preguntas</label>
                     <div class="chip-group">

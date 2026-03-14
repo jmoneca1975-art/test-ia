@@ -13,7 +13,7 @@ const app = {
             const debugBanner = document.createElement('div');
             debugBanner.id = "debug-init";
             debugBanner.style = "position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;z-index:9999;padding:2px;pointer-events:none;";
-            debugBanner.textContent = "Booting v46...";
+            debugBanner.textContent = "Booting v47...";
             document.body.appendChild(debugBanner);
 
             // Inicializar Créditos
@@ -281,11 +281,18 @@ const app = {
             this.switchView('config-view');
             const topicEl = document.getElementById('test-topic');
             if (topicEl) {
-                const summary = `--- RESUMEN DE EXTRACCIÓN ---\nDocumento: ${file.name}\nPáginas: ${start} a ${end} (Total: ${parseInt(end)-parseInt(start)+1})\nLongitud: ${textToProcess.length} caracteres\n---------------------------\n\n`;
+                const totalPageCount = parseInt(end) - parseInt(start) + 1;
+                const summary = `--- RESUMEN DE EXTRACCIÓN ---\nDocumento: ${file.name}\nPáginas: ${start} a ${end} (Total: ${totalPageCount})\nLongitud: ${textToProcess.length} caracteres\n---------------------------\n\n`;
                 topicEl.value = summary + textToProcess;
                 topicEl.scrollTop = 0;
+                
+                // Actualizar contadores visuales (Stats)
+                const statsPages = document.getElementById('stats-pages');
+                const statsChars = document.getElementById('stats-chars');
+                if (statsPages) statsPages.textContent = `Páginas: ${totalPageCount}`;
+                if (statsChars) statsChars.textContent = `Caracteres: ${textToProcess.length.toLocaleString()}`;
             }
-            alert(`✅ Texto extraído con éxito (${parseInt(end)-parseInt(start)+1} páginas). Ahora pulsa "Generar" para crear el test.`);
+            alert(`✅ Texto extraído con éxito (${parseInt(end)-parseInt(start)+1} páginas).`);
        } catch (err) {
             console.error("PDF EXTRACTION ERROR:", err);
             overlay.classList.add('hidden');

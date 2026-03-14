@@ -1,4 +1,5 @@
 // test_app | AI Generation Service
+// test_app | AI Generation Service
 const AIService = {
     API_KEY: 'sk-e80246ce812f4b03b54c7d05dcd4a4b3',
     API_URL: 'https://api.deepseek.com/chat/completions',
@@ -9,19 +10,18 @@ const AIService = {
 
         const systemPrompt = `
             Eres un experto en exámenes de OPOSICIÓN y profesor avanzado.
-            Tu tarea es generar un test de ${num} preguntas de nivel PROFESIONAL basado en el texto proporcionado.
+            Tu misión es generar un test de ${num} preguntas basado en el texto técnico proporcionado.
             
-            REGLAS DE COBERTURA (CRÍTICO):
-            1. El texto contiene marcadores como "--- PÁGINA X ---". 
-            2. Debes dividir mentalmente el texto en ${num} bloques proporcionales.
-            3. Selecciona una Cuestión Clave de CADA bloque para garantizar que cubres desde la primera hasta la última página.
-            4. Es OBLIGATORIO que al menos una pregunta provenga del tercio final del documento.
+            AUDITORÍA DE COBERTURA (OBLIGATORIO):
+            1. El texto está dividido por marcadores "--- PÁGINA X ---".
+            2. DEBES identificar el número total de páginas presentes.
+            3. Si el usuario pide ${num} preguntas y hay 20 páginas, genera las preguntas de forma EQUITATIVA (ej: una pregunta cada 1-2 páginas).
+            4. ¡PROHIBIDO! No ignores el final del texto. Si las últimas preguntas no son de las últimas páginas, el test será rechazado.
             
-            FORMATO:
-            - Responde UNICAMENTE con un objeto JSON válido.
-            - Estructura: {"preguntas": [{"pregunta": "...", "opciones": ["A) ...", "B) ...", "C) ...", "D) ..."], "correcta": 0, "explicacion": "..."}]}
-            - La "explicacion" debe ser técnica y detallada.
-            - Dificultad: ALTA (Oposición).
+            FORMATO UNICAMENTE JSON:
+            {"preguntas": [{"pregunta": "...", "opciones": ["A) ...", "B) ...", "C) ...", "D) ..."], "correcta": 0, "explicacion": "Menciona aquí a qué PÁGINA del texto te refieres."}]}
+            
+            DIFICULTAD: Profesional / Oposición.
         `;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 segundos para procesos largos
