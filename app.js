@@ -5,6 +5,10 @@ const app = {
     currentPdfFile: null,
     currentTestName: "",
     creditBalance: 0,
+    stripeLinks: {
+        pack1000: "success_sim.html", // Reemplazar con tu link real de Stripe
+        pack5000: "success_sim.html"  // Reemplazar con tu link real de Stripe
+    },
     
     init() {
         try {
@@ -13,7 +17,7 @@ const app = {
             const debugBanner = document.createElement('div');
             debugBanner.id = "debug-init";
             debugBanner.style = "position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;z-index:9999;padding:2px;pointer-events:none;";
-            debugBanner.textContent = "Booting v39...";
+            debugBanner.textContent = "Booting v40...";
             document.body.appendChild(debugBanner);
 
             // Inicializar Créditos
@@ -698,11 +702,13 @@ const app = {
         });
     },
 
-    rechargeCredits(amount) {
-        this.creditBalance += amount;
-        localStorage.setItem('credit_balance', this.creditBalance);
-        this.updateCreditUI();
-        alert(`✅ ¡Recarga de ${amount} créditos completada!`);
+    rechargeCredits(packKey) {
+        const url = this.stripeLinks[packKey];
+        if (url) {
+            window.location.href = url;
+        } else {
+            alert("Error: Enlace de pago no configurado.");
+        }
     },
 
     redeemCode() {
