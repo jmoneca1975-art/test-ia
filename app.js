@@ -567,8 +567,8 @@ const app = {
             
             if (selectedData.length === 0) throw new Error("No se encontraron los datos de los tests seleccionados.");
 
-            // Inicializar SQL.js si no lo está
-            if (!window.SQL) {
+            // Inicializar SQL.js si no lo está (usando la versión ya cargada en el HTML)
+            if (!window.SQL || typeof window.SQL.Database !== 'function') {
                 const config = { locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.1/${file}` };
                 window.SQL = await initSqlJs(config);
             }
@@ -577,11 +577,13 @@ const app = {
             
             // Crear esquema mínimo de Anki 2.1
             db.run(`
+                BEGIN TRANSACTION;
                 CREATE TABLE col (id integer primary key, crt integer not null, mod integer not null, scm integer not null, ver integer not null, dty integer not null, usn integer not null, ls integer not null, conf text not null, models text not null, decks text not null, dconf text not null, tags text not null);
                 CREATE TABLE notes (id integer primary key, guid text not null, mid integer not null, mod integer not null, usn integer not null, tags text not null, flds text not null, sfld text not null, csum integer not null, flags integer not null, data text not null);
                 CREATE TABLE cards (id integer primary key, nid integer not null, did integer not null, ord integer not null, mod integer not null, usn integer not null, type integer not null, queue integer not null, due integer not null, ivl integer not null, factor integer not null, reps integer not null, lapses integer not null, left integer not null, odue integer not null, odid integer not null, flags integer not null, data text not null);
                 CREATE TABLE revlog (id integer primary key, cid integer not null, usn integer not null, ease integer not null, ivl integer not null, lastIvl integer not null, factor integer not null, time integer not null, type integer not null);
                 CREATE TABLE graves (usn integer not null, oid integer not null, type integer not null);
+                COMMIT;
             `);
 
             const now = Math.floor(Date.now() / 1000);
@@ -602,13 +604,14 @@ const app = {
             
             db.run("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, 0, 0, '{}', ?, ?, '{}', '{}')", [now, now, now, JSON.stringify(models), JSON.stringify(decks)]);
 
+            db.run("BEGIN TRANSACTION");
             let noteCount = 0;
+            const timestampSeed = Date.now();
             selectedData.forEach(test => {
                 test.data.forEach(q => {
-                    const nid = Date.now() + noteCount;
+                    const nid = timestampSeed + noteCount;
                     const guid = Math.random().toString(36).substring(2, 10);
                     
-                    // Cuerpo de la carta: Pregunta vs Respuesta + Opciones + Explicación
                     const front = `<strong>${test.name}</strong><br><br>${q.pregunta}`;
                     let back = `Respuesta Correcta: <strong>${q.respuesta}</strong><br><br>`;
                     if (q.opciones) {
@@ -623,8 +626,11 @@ const app = {
                     noteCount += 10;
                 });
             });
+            db.run("COMMIT");
 
             const binaryDb = db.export();
+            db.close(); // Liberar memoria WASM inmediatamente
+
             const zip = new JSZip();
             zip.file("collection.anki2", binaryDb);
             zip.file("media", "{}");

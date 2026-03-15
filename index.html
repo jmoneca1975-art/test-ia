@@ -249,8 +249,31 @@
             </main>
         </section>
 
+        <!-- QR Access View (Mobile) -->
+        <section id="qr-view" class="view">
+            <nav class="top-nav">
+                <h2>Conectar Móvil</h2>
+            </nav>
+            <main class="content-padding">
+                <div class="qr-container">
+                    <div class="qr-card">
+                        <h3>Escanea para practicar</h3>
+                        <div class="qr-box">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=http://192.168.1.33:8080" alt="QR Code">
+                        </div>
+                        <div class="qr-url">http://192.168.1.33:8080</div>
+                        <p class="qr-hint">Asegúrate de que tu móvil y PC estén en la misma red Wi-Fi.</p>
+                    </div>
+                </div>
+            </main>
+        </section>
+
         <!-- Tab Bar -->
         <nav class="tab-bar">
+            <button class="tab-item" onclick="app.switchView('qr-view')">
+                <span class="icon">📱</span>
+                <span class="label">Conectar</span>
+            </button>
             <button class="tab-item active" onclick="app.switchView('home-view')">
                 <span class="icon">🏠</span>
                 <span class="label">Inicio</span>
@@ -272,7 +295,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.1/sql-wasm.js"></script>
     <script src="ai-service.js"></script>
     <script src="app.js"></script>
 </body>

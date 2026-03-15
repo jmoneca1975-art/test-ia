@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Global - Test IA</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        h1 { margin-bottom: 20px; font-size: 24px; }
+        .qr-wrapper {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .url {
+            font-family: monospace;
+            background: rgba(99, 102, 241, 0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: #818cf8;
+            font-size: 16px;
+            text-decoration: none;
+        }
+        .status {
+            color: #fbbf24;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        p { color: rgba(255, 255, 255, 0.6); max-width: 320px; line-height: 1.5; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tu App en el Móvil (Global)</h1>
+        <div class="qr-wrapper">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://jmoneca1975-art.github.io/test-ia/" alt="Public QR Code">
+        </div>
+        <br>
+        <a href="https://jmoneca1975-art.github.io/test-ia/" class="url">Ir a la App Pública</a>
+        <div class="status">⚠️ Requiere subir los archivos a GitHub primero.</div>
+        <p>Una vez subas tu código, este QR te permitirá entrar desde cualquier sitio con tus datos móviles.</p>
+    </div>
+</body>
+</html>
