@@ -4,6 +4,7 @@ const app = {
     score: 0,
     currentPdfFile: null,
     currentTestName: "",
+    currentPdfPages: null,
     creditBalance: 0,
     
     init() {
@@ -58,6 +59,16 @@ const app = {
             this.currentTestName = "";
             document.getElementById('test-topic').value = "";
             this.switchView('config-view');
+        });
+
+        // Limpiar estado de PDF si el usuario escribe manualmente
+        document.getElementById('test-topic').addEventListener('input', () => {
+            this.currentPdfPages = null;
+            // Resetear stats visuales
+            const statsPages = document.getElementById('stats-pages');
+            const statsChars = document.getElementById('stats-chars');
+            if (statsPages) statsPages.textContent = `Páginas: 0`;
+            if (statsChars) statsChars.textContent = `Caracteres: ${document.getElementById('test-topic').value.length.toLocaleString()}`;
         });
 
         // Botón subir PDF (Generación)
@@ -139,12 +150,47 @@ const app = {
         overlay.classList.remove('hidden');
 
         try {
-            console.log("Iniciando generación para:", topic);
-            ProgressTracker.updateStatus("Conectando con DeepSeek...");
-            const questions = await AIService.generateQuestions(topic, numQ);
+            let questions = [];
+            
+            // MODO BATCH (Si viene de un PDF extraído recientemente)
+            if (this.currentPdfPages && this.currentPdfPages.length > 0) {
+                console.log("Iniciando MODO BATCH para PDF...");
+                const totalPages = this.currentPdfPages.length;
+                const qPerPage = Math.max(1, Math.ceil(numQ / totalPages));
+                
+                for (let i = 0; i < totalPages; i++) {
+                    const page = this.currentPdfPages[i];
+                    ProgressTracker.updateStatus(`Generando página ${i + 1} de ${totalPages}...`);
+                    
+                    try {
+                        const pageQuestions = await AIService.generateQuestions(page.text, qPerPage);
+                        if (Array.isArray(pageQuestions)) {
+                            // Añadir meta de página a cada pregunta
+                            pageQuestions.forEach(q => q.explicacion = `(Pág. ${page.num}) ${q.explicacion}`);
+                            questions = questions.concat(pageQuestions);
+                        }
+                    } catch (e) {
+                        console.warn(`Fallo en página ${page.num}, saltando...`, e);
+                    }
+                    
+                    // Si ya tenemos suficientes preguntas, paramos
+                    if (questions.length >= numQ) break;
+                }
+                
+                // Recortar si sobran (por el redondeo)
+                questions = questions.slice(0, numQ);
+                
+                // Limpiar páginas procesadas para el próximo test
+                this.currentPdfPages = null; 
+            } else {
+                // MODO NORMAL (Texto libre o resumen)
+                console.log("Iniciando MODO NORMAL para texto libre...");
+                ProgressTracker.updateStatus("Conectando con DeepSeek...");
+                questions = await AIService.generateQuestions(topic, numQ);
+            }
             
             if (!questions || !Array.isArray(questions) || questions.length === 0) {
-                throw new Error("La IA no devolvió preguntas válidas.");
+                throw new Error("La IA no pudo generar las preguntas. Reintenta con menos texto.");
             }
 
             this.currentIndex = 0;
@@ -273,7 +319,10 @@ const app = {
             if (!window.pdfjsLib) {
                 throw new Error("La librería PDF.js no se ha cargado correctamente. Comprueba tu conexión a internet.");
             }
-            const textToProcess = await this.extractPdfText(file, parseInt(start), parseInt(end));
+            const extractionResult = await this.extractPdfText(file, parseInt(start), parseInt(end));
+            this.currentPdfPages = extractionResult.pages;
+            const textToProcess = extractionResult.fullText;
+            
             console.log("Texto extraído con éxito (" + textToProcess.length + " caracteres)");
             overlay.classList.add('hidden');
             
@@ -304,6 +353,7 @@ const app = {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let fullText = "";
+        const pages = [];
         
         const safeEnd = Math.min(end, pdf.numPages);
         const safeStart = Math.max(1, start);
@@ -315,10 +365,13 @@ const app = {
             const content = await page.getTextContent();
             const pageText = content.items.map(item => item.str).join(' ');
             console.log(`Página ${i} extraída: ${pageText.length} caracteres.`);
-            fullText += `--- PÁGINA ${i} ---\n${pageText}\n\n`;
+            
+            const formattedPageText = `--- PÁGINA ${i} ---\n${pageText}\n\n`;
+            fullText += formattedPageText;
+            pages.push({ num: i, text: pageText });
         }
         console.log(`Extracción finalizada. Total acumulado: ${fullText.length} caracteres.`);
-        return fullText;
+        return { fullText, pages };
     },
 
     saveToLibrary(name, data) {
