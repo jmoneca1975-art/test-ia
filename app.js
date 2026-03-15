@@ -249,8 +249,28 @@ const app = {
                 
             this.saveToLibrary(finalName, questions);
 
-            overlay.classList.add('hidden');
-            this.startQuiz();
+            const isZeroClick = document.getElementById('chk-zero-click')?.checked;
+            
+            if (isZeroClick) {
+                overlay.classList.add('hidden');
+                ProgressTracker.updateStatus("🚀 ¡Generación completada! Iniciando descarga de Anki...");
+                
+                // Preparar selección para exportToAnki
+                const latestTestId = JSON.parse(localStorage.getItem('test_library') || '[]')[0]?.id;
+                if (latestTestId) {
+                    this.selectedTests.clear();
+                    this.selectedTests.add(latestTestId);
+                    
+                    // Ejecutar exportación sin alertas bloqueantes
+                    await this.exportToAnki(true); 
+                }
+                
+                // Volver al Home discretamente
+                this.switchView('home-view');
+            } else {
+                overlay.classList.add('hidden');
+                this.startQuiz();
+            }
 
         } catch (err) {
             console.error("Error en generación:", err);
@@ -281,56 +301,90 @@ const app = {
 
     async handleImportTxt(file) {
         const text = await file.text();
-        const quizData = this.parseBiologiaTxt(text, file.name);
+        const quizData = this.parseVisorRangoTxt(text, file.name);
         if (quizData && quizData.length > 0) {
-            this.currentQuestions = quizData;
+            // Guardar en biblioteca primero
             this.saveToLibrary(file.name, quizData);
-            this.startQuiz();
+            
+            // Confirmación de flujo directo
+            if (confirm(`🎉 ¡Importado! Se han detectado ${quizData.length} preguntas.\n\n¿Quieres generar el mazo de Anki (APKG) directamente ahora?`)) {
+                const library = JSON.parse(localStorage.getItem('test_library') || '[]');
+                const latestTest = library[0]; // El que acabamos de guardar con saveToLibrary
+                this.selectedTests.clear();
+                this.selectedTests.add(latestTest.id);
+                this.exportToAnki();
+            } else {
+                this.currentQuestions = quizData;
+                this.startQuiz();
+            }
         } else {
-            alert("No se pudo detectar el formato de Biología en este archivo.");
+            alert("❌ No se pudo detectar el formato de 'Visor Rango' en este archivo.\n\nAsegúrate de que contenga marcas como 'PREGUNTA 1:' y 'RESPUESTA CORRECTA:'.");
         }
     },
 
-    parseBiologiaTxt(text, filename) {
+    parseVisorRangoTxt(text, filename) {
         const questions = [];
-        const blocks = text.split(/PREGUNTA \d+:/i);
-        
-        // El primer bloque suele ser el encabezado
-        for (let i = 1; i < blocks.length; i++) {
-            const block = blocks[i];
-            const lines = block.split('\n').map(l => l.trim()).filter(l => l);
-            
-            const questionText = lines[0];
-            const options = [];
-            let correctIdx = -1;
-            let explanation = "";
+        let currentQuestion = null;
+        let inQuestion = false;
+        const lines = text.split('\n');
 
-            lines.forEach(line => {
-                if (line.match(/^[A-D]\)/i)) {
-                    options.push(line);
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            // Replicar Regex de Python: PREGUNTA\s+(\d+):\s*(.*)
+            const preguntaMatch = line.match(/PREGUNTA\s+(\d+):\s*(.*)/i);
+            if (preguntaMatch) {
+                if (currentQuestion && currentQuestion.pregunta) {
+                    questions.push(currentQuestion);
                 }
-                if (line.includes("RESPUESTA CORRECTA:")) {
-                    const match = line.match(/([A-D])/i);
-                    if (match) {
-                        const letter = match[1].toUpperCase();
-                        correctIdx = letter.charCodeAt(0) - 65; // A=0, B=1...
+                currentQuestion = {
+                    pregunta: preguntaMatch[2],
+                    opciones: [],
+                    correcta: -1,
+                    explicacion: "",
+                    meta: { file: filename, number: preguntaMatch[1] }
+                };
+                inQuestion = true;
+                continue;
+            }
+
+            // Opciones: ^[A-D]\)
+            if (inQuestion && line.match(/^[A-D]\)/)) {
+                currentQuestion.opciones.push(line);
+                continue;
+            }
+
+            // Respuesta: RESPUESTA CORRECTA:\s*([A-D])
+            const respuestaMatch = line.match(/RESPUESTA CORRECTA:\s*([A-D])(?:\s*[✓✔]?)?/i);
+            if (respuestaMatch && currentQuestion) {
+                const letter = respuestaMatch[1].toUpperCase();
+                currentQuestion.correcta = letter.charCodeAt(0) - 65; // A=0, B=1...
+                continue;
+            }
+
+            // Explicación: Empieza por 'Explicación:'
+            if (line.includes('Explicación:')) {
+                if (currentQuestion) {
+                    let explanation = line.split(/Explicación:/i)[1]?.trim() || "";
+                    // Capturar líneas siguientes hasta la próxima pregunta
+                    let j = i + 1;
+                    while (j < lines.length && !lines[j].trim().match(/PREGUNTA\s+\d+:/i)) {
+                        const nextLine = lines[j].trim();
+                        if (nextLine) explanation += " " + nextLine;
+                        j++;
                     }
+                    currentQuestion.explicacion = explanation;
+                    i = j - 1;
                 }
-                if (line.includes("Explicación:")) {
-                    explanation = block.split(/Explicación:/i)[1]?.trim() || "";
-                }
-            });
-
-            if (questionText && options.length > 0 && correctIdx !== -1) {
-                questions.push({
-                    pregunta: questionText,
-                    opciones: options,
-                    correcta: correctIdx,
-                    explicacion: explanation,
-                    meta: { file: filename }
-                });
             }
         }
+
+        if (currentQuestion && currentQuestion.pregunta) {
+            questions.push(currentQuestion);
+        }
+
+        console.log(`Parseo finalizado: ${questions.length} preguntas extraídas de ${filename}`);
         return questions;
     },
 
@@ -545,7 +599,7 @@ const app = {
         }
     },
 
-    async exportToAnki() {
+    async exportToAnki(isSilent = false) {
         if (this.selectedTests.size === 0) return;
 
         ProgressTracker.updateStatus("Exportando a Anki (v37 - Motor Python Sincronizado)...");
@@ -555,7 +609,10 @@ const app = {
         try {
             const library = JSON.parse(localStorage.getItem('test_library') || '[]');
             const selectedData = library.filter(t => this.selectedTests.has(t.id));
-            if (selectedData.length === 0) throw new Error("No hay tests seleccionados.");
+            if (selectedData.length === 0) {
+                if (!isSilent) throw new Error("No hay tests seleccionados.");
+                return;
+            }
 
             const SQL = await initSqlJs({
                 locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.1/${file}`
@@ -640,6 +697,7 @@ const app = {
                             <div class='question-box'>
                                 <div class='question-header'>📝 Pregunta</div>
                                 <div class='question-text'>{{Pregunta}}</div>
+                                <div class='source-info' style='font-size:10px; color:#888; margin-top:5px;'>{{Fuente}}</div>
                             </div>
                             <div class='options-box'>
                                 <div class='options-header'>🔍 Selecciona una opción:</div>
@@ -647,13 +705,15 @@ const app = {
                                     {{OpcionesBotones}}
                                 </div>
                                 <div class='nsnc-container' style='margin-top:15px;'>
-                                    <a href='#' class='nsnc-button' onclick="return handleNSNC('{{id}}')">❓ NS/NC</a>
+                                    <a href='#' class='nsnc-button' onclick="return handleNSNC('{{id}}')">❓ No sé / No contesto (NS/NC)</a>
                                 </div>
                                 <div id='result-message-{{id}}' class='result-message'></div>
                             </div>
                             <div class='stats-box'>
+                                <div class='stats-header'>📊 Estadísticas</div>
                                 <div class='stats-container'>
                                     <div class='stat-item'><span class='stat-label'>Fallos</span><span class='stat-value fail-value' id='fail-count-{{id}}'>0</span></div>
+                                    <div class='stat-item'><span class='stat-label'>NS/NC</span><span class='stat-value nsnc-value' id='nsnc-count-{{id}}' style='color:#95a5a6;'>0</span></div>
                                     <div class='stat-item'><span class='stat-label'>Máx</span><span class='stat-value' id='max-reps-{{id}}'>{{MaxReps}}</span></div>
                                 </div>
                                 <div id='status-message-{{id}}' class='status-message'></div>
@@ -661,8 +721,11 @@ const app = {
                         </div>
                         <script>
                             var qid = "{{id}}"; var correct = "{{RespuestaLetra}}"; var max = parseInt("{{MaxReps}}") || 3;
-                            var fails = parseInt(localStorage.getItem('f_' + qid) || '0');
+                            var fails = parseInt(localStorage.getItem('fail_' + qid) || '0');
+                            var nsncs = parseInt(localStorage.getItem('nsnc_' + qid) || '0');
                             document.getElementById('fail-count-'+qid).innerHTML = fails;
+                            document.getElementById('nsnc-count-'+qid).innerHTML = nsncs;
+                            window.answered = false;
                             function checkAnswer(sel, id) {
                                 if (window.answered) return false; window.answered=true;
                                 var res = document.getElementById('result-message-'+id);
@@ -670,9 +733,9 @@ const app = {
                                     res.innerHTML = "<span class='result-correct'>✓ ¡Correcto!</span>";
                                     document.getElementById('option-'+sel+'-'+id).classList.add('correct-answer');
                                 } else {
-                                    fails++; localStorage.setItem('f_'+id, fails);
+                                    fails++; localStorage.setItem('fail_'+id, fails);
                                     document.getElementById('fail-count-'+id).innerHTML = fails;
-                                    res.innerHTML = "<span class='result-incorrect'>✗ Incorrecto</span>";
+                                    res.innerHTML = "<span class='result-incorrect'>✗ Incorrecto ("+fails+"/"+max+")</span>";
                                     document.getElementById('option-'+sel+'-'+id).classList.add('incorrect-answer');
                                     document.getElementById('option-'+correct+'-'+id).classList.add('correct-answer');
                                 }
@@ -680,13 +743,15 @@ const app = {
                             }
                             function handleNSNC(id) {
                                 if (window.answered) return false; window.answered=true;
-                                document.getElementById('result-message-'+id).innerHTML = "<span class='result-nsnc'>❓ NS/NC</span>";
+                                nsncs++; localStorage.setItem('nsnc_'+id, nsncs);
+                                document.getElementById('nsnc-count-'+id).innerHTML = nsncs;
+                                document.getElementById('result-message-'+id).innerHTML = "<span class='result-nsnc'>❓ NS/NC ("+nsncs+")</span>";
                                 document.getElementById('option-'+correct+'-'+id).classList.add('correct-answer');
                                 updateStatus(id); return false;
                             }
                             function updateStatus(id) {
                                 var s = document.getElementById('status-message-'+id);
-                                s.innerHTML = fails > 0 ? "<span class='status-review'>🔴 Repasar</span>" : "<span class='status-perfect'>🌟 Dominada</span>";
+                                s.innerHTML = fails >= max ? "<span class='status-review' style='background:#c0392b;'>🔴 AGOTADA - REPASAR</span>" : (fails > 0 ? "<span class='status-review'>🟠 En repaso</span>" : "<span class='status-perfect'>🌟 Dominada</span>");
                             }
                             updateStatus(qid);
                         </script>
@@ -696,7 +761,7 @@ const app = {
                             <div class='question-box'><div class='question-header'>📝 Pregunta</div><div class='question-text'>{{Pregunta}}</div></div>
                             <div class='answer-box'><div class='answer-header'>✅ Respuesta correcta</div><div class='answer-text'>{{Respuesta}}</div></div>
                             <div class='explanation-box'><div class='explanation-header'>📚 Explicación</div><div class='explanation-text'>{{Explicación}}</div></div>
-                            <div class='stats-box'><div class='stats-container'><div class='stat-item'><span class='stat-label'>Historial Fallos</span><span class='stat-value fail-value'>${"{{"}localStorage:f_{{id}}{{"}}"}</span></div></div></div>
+                            <div class='source-info' style='text-align:center; font-size:12px; color:#888; margin-top:10px;'>Fuente: {{Fuente}} | ID: {{id}}</div>
                         </div>
                     ` 
                 }],
@@ -785,7 +850,9 @@ const app = {
 
             this.selectedTests.clear(); this.renderHistory();
             overlay.classList.add('hidden');
-            alert("¡Mazo Premium v37 generado correctamente!\n\nSe han incluido botones interactivos y estadísticas compatibles con AnkiDroid.");
+            if (!isSilent) {
+                alert("¡Mazo Premium v37 generado correctamente!\n\nSe han incluido botones interactivos y estadísticas compatibles con AnkiDroid.");
+            }
 
         } catch (err) {
             console.error("ANKI ERROR:", err);
