@@ -502,14 +502,19 @@ const app = {
             const isDuplicate = library.some(t => t.name === name && t.count === data.length);
             if (isDuplicate) return;
 
+            const newTestId = Date.now();
             library.unshift({
-                id: Date.now(),
+                id: newTestId,
                 name: name,
                 count: data.length,
                 date: new Date().toLocaleDateString(),
                 data: data
             });
-            // Guardar hasta 50 tests para mayor persistencia
+            
+            // Auto-seleccionar el nuevo test para exportación rápida
+            this.selectedTests.clear();
+            this.selectedTests.add(newTestId);
+
             localStorage.setItem('test_library', JSON.stringify(library.slice(0, 50)));
             this.renderHistory();
         } catch (err) {
@@ -949,12 +954,24 @@ const app = {
         document.getElementById('progress-fill').style.width = `100%`;
         const percentage = Math.round((this.score / this.currentQuestions.length) * 100);
         
-        setTimeout(() => {
-            alert(`¡Test finalizado!\n\nHas acertado ${this.score} de ${this.currentQuestions.length} (${percentage}%).`);
-            this.renderHistory();
-            this.updateFailedCount();
-            this.switchView('home-view');
-        }, 500);
+        // Actualizar UI de resultados v42
+        document.getElementById('results-percentage').textContent = `${percentage}%`;
+        document.getElementById('results-summary').textContent = `Has acertado ${this.score} de ${this.currentQuestions.length} preguntas.`;
+        
+        const titleEl = document.getElementById('results-title');
+        if (percentage >= 80) titleEl.textContent = "🏆 ¡Excelente trabajo!";
+        else if (percentage >= 50) titleEl.textContent = "💪 ¡Sigue así!";
+        else titleEl.textContent = "📚 Toca repasar un poco";
+
+        this.renderHistory();
+        this.updateFailedCount();
+        this.switchView('results-view');
+    },
+
+    async downloadCurrentTestAsAnki() {
+        // El test actual ya está guardado en la biblioteca y auto-seleccionado en saveToLibrary
+        ProgressTracker.updateStatus("Generando mazo Anki desde resultados...");
+        await this.exportToAnki(true); // Exportación silenciosa (Zero-Click style)
     },
 
     // --- IMPORTACIÓN ANKI (.APKG) ---

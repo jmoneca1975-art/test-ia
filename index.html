@@ -52,6 +52,7 @@
                     </button>
                     <button id="btn-import-anki" class="action-card dark-card">
                         <img src="anki-logo.png" alt="Anki" class="btn-image">
+                        <div class="label" style="font-size: 0.7rem; margin-top: 5px;">Bajar Selección</div>
                     </button>
                 </div>
 
@@ -210,6 +211,31 @@
                 <p id="loading-status">Generando preguntas inteligentes</p>
             </div>
         </div>
+
+        <!-- Results View v42 -->
+        <section id="results-view" class="view">
+            <nav class="top-nav">
+                <h2>Resultados</h2>
+                <button class="btn-close" onclick="app.switchView('home-view')">✕</button>
+            </nav>
+            <main class="content-padding text-center">
+                <div class="results-card">
+                    <div id="results-score-circle" class="score-circle">
+                        <span id="results-percentage">0%</span>
+                    </div>
+                    <h3 id="results-title">¡Buen trabajo!</h3>
+                    <p id="results-summary">Has acertado 0 de 0 preguntas.</p>
+                </div>
+
+                <div class="action-group" style="margin-top: 30px;">
+                    <button class="btn-primary" onclick="app.downloadCurrentTestAsAnki()" style="background: var(--dark); border: none; display: flex; align-items: center; justify-content: center; width: 100%;">
+                        <img src="anki-logo.png" style="height: 24px; margin-right: 10px;"> 📥 Bajar Mazo Anki
+                    </button>
+                    <button class="btn-secondary" onclick="app.startQuiz()" style="margin-top: 15px; width: 100%;">🔄 Repetir este Test</button>
+                    <button class="btn-secondary" onclick="app.switchView('home-view')" style="margin-top: 10px; width: 100%; border: none;">🏠 Volver al Inicio</button>
+                </div>
+            </main>
+        </section>
 
         <!-- Settings / Monetization View -->
         <section id="settings-view" class="view">
