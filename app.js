@@ -646,21 +646,18 @@ const app = {
             const binaryDb = db.export();
             db.close();
 
-            const zip = new JSZip();
-            zip.file("collection.anki2", binaryDb);
-            zip.file("media", "{}");
-
-            const content = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.anki" });
+            // Exportamos como .anki2 directo (fichero normal, no ZIP)
+            const blob = new Blob([binaryDb], { type: "application/x-sqlite3" });
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(content);
-            link.download = `Importar_en_Anki.apkg`;
+            link.href = URL.createObjectURL(blob);
+            link.download = `Cuestionario_Anki.anki2`;
             link.click();
 
             this.selectedTests.clear();
             this.renderHistory();
             overlay.classList.add('hidden');
             
-            alert("¡Archivo generado! Si no se abre solo, haz esto:\n\n1. Abre AnkiDroid.\n2. Pulsa los 3 puntos (arriba) -> Importar.\n3. Selecciona el archivo 'Importar_en_Anki.apkg' en tu carpeta Descargas.");
+            alert("¡Fichero generado! Para instalarlo:\n\n1. Abre AnkiDroid.\n2. Pulsa 3 puntos -> Importar.\n3. Selecciona 'Cuestionario_Anki.anki2' en tu carpeta Descargas.");
 
         } catch (err) {
             console.error("DEBUG ANKI:", err);
