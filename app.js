@@ -672,40 +672,40 @@ const app = {
                     { name: "RespuestaLetra", ord: 4, sticky: false, rtl: false, font: "Roboto", size: 16, media: [] },
                     { name: "Explicacion", ord: 5, sticky: false, rtl: false, font: "Roboto", size: 15, media: [] },
                     { name: "MaxReps", ord: 6, sticky: false, rtl: false, font: "Roboto", size: 12, media: [] },
-                    { name: "id", ord: 7, sticky: false, rtl: false, font: "Roboto", size: 12, media: [] },
+                    { name: "QuestionID", ord: 7, sticky: false, rtl: false, font: "Roboto", size: 12, media: [] },
                     { name: "Fuente", ord: 8, sticky: false, rtl: false, font: "Roboto", size: 12, media: [] }
                 ],
                 tmpls: [{ 
                     name: "Pregunta-Respuesta Premium", ord: 0, 
                     qfmt: `
-                        <div class='container'>
-                            <div class='question-box'>
-                                <div class='question-header'>📝 Pregunta</div>
-                                <div class='question-text' style='font-size: 1.1em; font-weight: 500;'>{{Pregunta}}</div>
+                        <div class='container' style='display:block !important; visibility:visible !important; opacity:1 !important;'>
+                            <div class='question-box' style='display:block !important;'>
+                                <div class='question-header' style='color: #3498db;'>📝 Pregunta</div>
+                                <div class='question-text' style='font-size: 1.2em; font-weight: bold; color: #000; display:block !important;'>{{Pregunta}}</div>
                                 <div class='source-info' style='font-size:10px; color:#888; margin-top:5px;'>{{Fuente}}</div>
                             </div>
-                            <div class='options-box' id='options-box-{{id}}'>
-                                <div class='options-header'>🔍 Selecciona una opción:</div>
-                                <div class='options-grid' id='options-grid-{{id}}'>
+                            <div class='options-box' id='options-box-{{QuestionID}}'>
+                                <div class='options-header' style='color: #f39c12; margin-top:15px;'>🔍 Selecciona una opción:</div>
+                                <div class='options-grid' id='options-grid-{{QuestionID}}'>
                                     {{OpcionesBotones}}
                                 </div>
                                 <div class='nsnc-container' style='margin-top:15px;'>
-                                    <a href='#' class='nsnc-button' onclick="return handleNSNC('{{id}}')">❓ No sé / No contesto (NS/NC)</a>
+                                    <a href='#' class='nsnc-button' onclick="return handleNSNC('{{QuestionID}}')">❓ No sé / No contesto (NS/NC)</a>
                                 </div>
-                                <div id='result-message-{{id}}' class='result-message'></div>
+                                <div id='result-message-{{QuestionID}}' class='result-message'></div>
                             </div>
                             <div class='stats-box'>
                                 <div class='stats-header'>📊 Estadísticas</div>
                                 <div class='stats-container'>
-                                    <div class='stat-item'><span class='stat-label'>Fallos</span><span class='stat-value fail-value' id='fail-count-{{id}}'>0</span></div>
-                                    <div class='stat-item'><span class='stat-label'>NS/NC</span><span class='stat-value nsnc-value' id='nsnc-count-{{id}}' style='color:#95a5a6;'>0</span></div>
-                                    <div class='stat-item'><span class='stat-label'>Máx</span><span class='stat-value' id='max-reps-{{id}}'>{{MaxReps}}</span></div>
+                                    <div class='stat-item'><span class='stat-label'>Fallos</span><span class='stat-value fail-value' id='fail-count-{{QuestionID}}'>0</span></div>
+                                    <div class='stat-item'><span class='stat-label'>NS/NC</span><span class='stat-value nsnc-value' id='nsnc-count-{{QuestionID}}' style='color:#95a5a6;'>0</span></div>
+                                    <div class='stat-item'><span class='stat-label'>Máx</span><span class='stat-value' id='max-reps-{{QuestionID}}'>{{MaxReps}}</span></div>
                                 </div>
-                                <div id='status-message-{{id}}' class='status-message'></div>
+                                <div id='status-message-{{QuestionID}}' class='status-message'></div>
                             </div>
                         </div>
                         <script>
-                            var qid = "{{id}}"; var correct = "{{RespuestaLetra}}"; var max = parseInt("{{MaxReps}}") || 3;
+                            var qid = "{{QuestionID}}"; var correct = "{{RespuestaLetra}}"; var max = parseInt("{{MaxReps}}") || 3;
                             var fails = parseInt(localStorage.getItem('fail_' + qid) || '0');
                             var nsncs = parseInt(localStorage.getItem('nsnc_' + qid) || '0');
                             document.getElementById('fail-count-'+qid).innerHTML = fails;
@@ -736,28 +736,26 @@ const app = {
                             }
                             function updateStatus(id) {
                                 var s = document.getElementById('status-message-'+id);
-                                s.innerHTML = fails >= max ? "<span class='status-review' style='background:#c0392b;'>🔴 AGOTADA - REPASAR</span>" : (fails > 0 ? "<span class='status-review'>🟠 En repaso</span>" : "<span class='status-perfect'>🌟 Dominada</span>");
+                                if(s) s.innerHTML = fails >= max ? "<span class='status-review' style='background:#c0392b;'>🔴 AGOTADA - REPASAR</span>" : (fails > 0 ? "<span class='status-review'>🟠 En repaso</span>" : "<span class='status-perfect'>🌟 Dominada</span>");
                             }
                             updateStatus(qid);
                         </script>
                     `, 
                     afmt: `
-                        <div class='container'>
-                            <div class='question-box' style='background: #eef2f7;'>
+                        <div class='container' style='display:block !important; visibility:visible !important;'>
+                            <div class='question-box' style='background: #eef2f7; margin-bottom: 15px; display:block !important;'>
                                 <div class='question-header' style='color: #7f8c8d;'>📝 Pregunta</div>
-                                <div class='question-text' style='color: #7f8c8d;'>{{Pregunta}}</div>
+                                <div class='question-text' style='color: #444; font-weight: normal; display:block !important;'>{{Pregunta}}</div>
                             </div>
-                            <div class='answer-box' style='border-left: 4px solid #2ecc71; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 15px;'>
+                            <div class='answer-box' style='border-left: 4px solid #2ecc71; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 15px; display:block !important;'>
                                 <div class='answer-header' style='font-size: 16px; font-weight: bold; color: #2ecc71; margin-bottom: 10px; border-bottom: 1px solid #eee;'>✅ Respuesta correcta</div>
-                                <div class='answer-text' style='font-size: 1.2em; font-weight: bold; color: #2c3e50;'>{{Respuesta}}</div>
+                                <div class='answer-text' style='font-size: 1.25em; font-weight: bold; color: #2c3e50; display:block !important;'>{{Respuesta}}</div>
                             </div>
-                            {{#Explicacion}}
-                            <div class='explanation-box' style='border-left: 4px solid #9b59b6; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 15px;'>
+                            <div class='explanation-box' style='border-left: 4px solid #9b59b6; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 15px; display:block !important;'>
                                 <div class='explanation-header' style='font-size: 16px; font-weight: bold; color: #9b59b6; margin-bottom: 10px; border-bottom: 1px solid #eee;'>📚 Explicación</div>
-                                <div class='explanation-text' style='color: #34495e; line-height: 1.6;'>{{Explicacion}}</div>
+                                <div class='explanation-text' style='color: #34495e; line-height: 1.6; display:block !important;'>{{Explicacion}}</div>
                             </div>
-                            {{/Explicacion}}
-                            <div class='source-info' style='text-align:center; font-size:12px; color:#888; margin-top:10px;'>Fuente: {{Fuente}} | ID: {{id}}</div>
+                            <div class='source-info' style='text-align:center; font-size:12px; color:#888; margin-top:10px;'>Fuente: {{Fuente}} | ID: {{QuestionID}}</div>
                         </div>
                     ` 
                 }],
