@@ -42,21 +42,16 @@
                 </div>
 
                 <div class="quick-actions">
-                    <button id="btn-new-test" class="action-card pulse">
+                    <button id="btn-new-test" class="action-card pulse full-width">
                         <div class="icon">✨</div>
-                        <div class="label">Crear Test</div>
-                    </button>
-                    <button id="btn-upload-pdf" class="action-card">
-                        <div class="icon">📄</div>
-                        <div class="label">Subir PDF</div>
+                        <div class="label">Crear Nuevo Test</div>
                     </button>
                     <button id="btn-review-errors" class="action-card accent-card">
                         <div class="icon">🚩</div>
                         <div class="label">Errores (<span id="failed-count">0</span>)</div>
                     </button>
                     <button id="btn-import-anki" class="action-card dark-card">
-                        <div class="icon">🎴</div>
-                        <div class="label">Importar Anki</div>
+                        <img src="anki-logo.png" alt="Anki" class="btn-image">
                     </button>
                 </div>
 
@@ -67,6 +62,12 @@
 
                 <div id="recent-list" class="test-grid">
                     <!-- Los tests recientes se cargan dinámicamente -->
+                </div>
+
+                <div id="history-pagination" class="pagination-controls hidden">
+                    <button onclick="app.changeHistoryPage(-1)" id="btn-prev-page" class="btn-pagination">Anterior</button>
+                    <span id="page-indicator">Página 1</span>
+                    <button onclick="app.changeHistoryPage(1)" id="btn-next-page" class="btn-pagination">Siguiente</button>
                 </div>
             </main>
         </section>

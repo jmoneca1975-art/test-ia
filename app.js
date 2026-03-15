@@ -11,6 +11,11 @@ const app = {
     pdfLibrary: [], // Biblioteca de PDFs en sesión
     creditBalance: 0,
     
+    // Paginación y Selección
+    currentHistoryPage: 0,
+    itemsPerPage: 5,
+    selectedTests: new Set(),
+    
     init() {
         try {
             console.log("test_app: Inicializando...");
@@ -86,16 +91,15 @@ const app = {
             this.triggerFilePicker('.pdf');
         });
 
-        // Botón importar TXT (Desde PC)
-        const btnImport = document.createElement('button');
-        btnImport.className = 'action-card';
-        btnImport.innerHTML = `<div class="icon">📥</div><div class="label">Importar TXT</div>`;
-        btnImport.onclick = () => this.triggerFilePicker('.txt');
-        document.querySelector('.quick-actions').appendChild(btnImport);
+        // Botón importar TXT removido
 
-        // Botón Importar Anki (.apkg)
+        // Botón Anki (Exportar si hay seleccionados, si no importar)
         document.getElementById('btn-import-anki').addEventListener('click', () => {
-            this.triggerFilePicker('.apkg');
+            if (this.selectedTests.size > 0) {
+                this.exportToAnki();
+            } else {
+                this.triggerFilePicker('.apkg');
+            }
         });
 
         // Botón Repasar Errores (Dinamizado)
@@ -469,17 +473,32 @@ const app = {
         try {
             const library = JSON.parse(localStorage.getItem('test_library') || '[]');
             
-            // Renderizar en Home (Recientes)
+            // Renderizar en Home (PAGINADO)
             const recentContainer = document.getElementById('recent-list');
+            const paginationContainer = document.getElementById('history-pagination');
+            
             if (recentContainer) {
                 if (library.length === 0) {
                     recentContainer.innerHTML = '<div class="empty-state"><p>No hay tests recientes.</p></div>';
+                    if (paginationContainer) paginationContainer.classList.add('hidden');
                 } else {
-                    recentContainer.innerHTML = library.slice(0, 3).map(test => this.createTestCard(test)).join('');
+                    const totalPages = Math.ceil(library.length / this.itemsPerPage);
+                    const start = this.currentHistoryPage * this.itemsPerPage;
+                    const end = start + this.itemsPerPage;
+                    const pageItems = library.slice(start, end);
+
+                    recentContainer.innerHTML = pageItems.map(test => this.createTestCard(test)).join('');
+                    
+                    if (paginationContainer) {
+                        paginationContainer.classList.toggle('hidden', totalPages <= 1);
+                        document.getElementById('page-indicator').textContent = `Página ${this.currentHistoryPage + 1} de ${totalPages}`;
+                        document.getElementById('btn-prev-page').disabled = this.currentHistoryPage === 0;
+                        document.getElementById('btn-next-page').disabled = (this.currentHistoryPage + 1) >= totalPages;
+                    }
                 }
             }
 
-            // Renderizar en Biblioteca
+            // Renderizar en Biblioteca (Todos)
             const libraryContainer = document.getElementById('library-list');
             if (libraryContainer) {
                 if (library.length === 0) {
@@ -488,26 +507,33 @@ const app = {
                     libraryContainer.innerHTML = library.map(test => this.createTestCard(test)).join('');
                 }
             }
-
-            // Renderizar en Historial (Actividad)
-            const historyContainer = document.getElementById('history-list');
-            if (historyContainer) {
-                if (library.length === 0) {
-                    historyContainer.innerHTML = '<div class="empty-state"><p>No hay actividad.</p></div>';
-                } else {
-                    historyContainer.innerHTML = library.map(test => this.createTestCard(test, true)).join('');
-                }
-            }
         } catch (err) {
             console.warn("Error rendering history:", err);
-            localStorage.removeItem('test_library'); // Limpiar si está corrupto
+            localStorage.removeItem('test_library');
         }
     },
 
+    changeHistoryPage(delta) {
+        this.currentHistoryPage += delta;
+        this.renderHistory();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    toggleTestSelection(id, checked) {
+        if (checked) this.selectedTests.add(id);
+        else this.selectedTests.delete(id);
+        console.log("Tests seleccionados:", Array.from(this.selectedTests));
+    },
+
     createTestCard(test, showDate = false) {
+        const isSelected = this.selectedTests.has(test.id);
         return `
-            <div class="test-card" onclick="app.loadSavedTest(${test.id})">
-                <div class="test-info">
+            <div class="test-card">
+                <div class="test-selection" onclick="event.stopPropagation()">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                           onchange="app.toggleTestSelection(${test.id}, this.checked)">
+                </div>
+                <div class="test-info" onclick="app.loadSavedTest(${test.id})">
                     <h4>${test.name}</h4>
                     <span>${test.count} preguntas ${showDate ? '• ' + test.date : ''}</span>
                 </div>
@@ -522,6 +548,99 @@ const app = {
         if (test) {
             this.currentQuestions = test.data;
             this.startQuiz();
+        }
+    },
+
+    async exportToAnki() {
+        if (this.selectedTests.size === 0) return;
+        
+        ProgressTracker.updateStatus("Preparando exportación Anki...");
+        const overlay = document.getElementById('loading-overlay');
+        overlay.classList.remove('hidden');
+
+        try {
+            const library = JSON.parse(localStorage.getItem('test_library') || '[]');
+            const selectedData = library.filter(t => this.selectedTests.has(t.id));
+            
+            if (selectedData.length === 0) throw new Error("No se encontraron los datos de los tests seleccionados.");
+
+            // Inicializar SQL.js si no lo está
+            if (!window.SQL) {
+                const config = { locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.1/${file}` };
+                window.SQL = await initSqlJs(config);
+            }
+
+            const db = new window.SQL.Database();
+            
+            // Crear esquema mínimo de Anki 2.1
+            db.run(`
+                CREATE TABLE col (id integer primary key, crt integer not null, mod integer not null, scm integer not null, ver integer not null, dty integer not null, usn integer not null, ls integer not null, conf text not null, models text not null, decks text not null, dconf text not null, tags text not null);
+                CREATE TABLE notes (id integer primary key, guid text not null, mid integer not null, mod integer not null, usn integer not null, tags text not null, flds text not null, sfld text not null, csum integer not null, flags integer not null, data text not null);
+                CREATE TABLE cards (id integer primary key, nid integer not null, did integer not null, ord integer not null, mod integer not null, usn integer not null, type integer not null, queue integer not null, due integer not null, ivl integer not null, factor integer not null, reps integer not null, lapses integer not null, left integer not null, odue integer not null, odid integer not null, flags integer not null, data text not null);
+                CREATE TABLE revlog (id integer primary key, cid integer not null, usn integer not null, ease integer not null, ivl integer not null, lastIvl integer not null, factor integer not null, time integer not null, type integer not null);
+                CREATE TABLE graves (usn integer not null, oid integer not null, type integer not null);
+            `);
+
+            const now = Math.floor(Date.now() / 1000);
+            const mid = 1598282335123; // ID de modelo aleatorio
+            const did = 1; // Default deck
+
+            // Meta-información básica
+            const models = {};
+            models[mid] = {
+                id: mid, name: "Basic (Test IA)", type: 0, mod: now, usn: -1,
+                flds: [{ name: "Anverso", ord: 0, sticky: false, rtl: false, font: "Arial", size: 20 }, { name: "Reverso", ord: 1, sticky: false, rtl: false, font: "Arial", size: 20 }],
+                tmpls: [{ name: "Card 1", ord: 0, qfmt: "{{Anverso}}", afmt: "{{FrontSide}}\n\n<hr id=answer>\n\n{{Reverso}}" }],
+                css: ".card { font-family: arial; font-size: 20px; text-align: center; color: black; background-color: white; }",
+                did: did
+            };
+
+            const decks = { "1": { id: 1, mod: now, name: "Default", desc: "", collapsed: false, browserCollapsed: false, usn: -1, conf: 1, extendRev: 50, extendNew: 10 } };
+            
+            db.run("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, 0, 0, '{}', ?, ?, '{}', '{}')", [now, now, now, JSON.stringify(models), JSON.stringify(decks)]);
+
+            let noteCount = 0;
+            selectedData.forEach(test => {
+                test.data.forEach(q => {
+                    const nid = Date.now() + noteCount;
+                    const guid = Math.random().toString(36).substring(2, 10);
+                    
+                    // Cuerpo de la carta: Pregunta vs Respuesta + Opciones + Explicación
+                    const front = `<strong>${test.name}</strong><br><br>${q.pregunta}`;
+                    let back = `Respuesta Correcta: <strong>${q.respuesta}</strong><br><br>`;
+                    if (q.opciones) {
+                        back += "<em>Opciones:</em><br><ul>" + q.opciones.map(o => `<li>${o}</li>`).join('') + "</ul>";
+                    }
+                    if (q.explicacion) {
+                        back += `<br><div style='color:#6366f1'>💡 ${q.explicacion}</div>`;
+                    }
+
+                    db.run("INSERT INTO notes VALUES (?, ?, ?, ?, -1, '', ?, ?, 0, 0, '')", [nid, guid, mid, now, `${front}\u001f${back}`, front]);
+                    db.run("INSERT INTO cards VALUES (?, ?, ?, 0, ?, -1, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')", [nid + 1, nid, did, now, noteCount]);
+                    noteCount += 10;
+                });
+            });
+
+            const binaryDb = db.export();
+            const zip = new JSZip();
+            zip.file("collection.anki2", binaryDb);
+            zip.file("media", "{}");
+
+            const content = await zip.generateAsync({ type: "blob" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(content);
+            link.download = `Anki_Pack_${new Date().toLocaleDateString().replace(/\//g,'-')}.apkg`;
+            link.click();
+
+            overlay.classList.add('hidden');
+            this.selectedTests.clear();
+            this.renderHistory();
+            alert("¡APKG Generado! Ábrelo con Anki para empezar a estudiar.");
+
+        } catch (err) {
+            console.error("Error en exportación Anki:", err);
+            overlay.classList.add('hidden');
+            alert("Error al generar Anki: " + err.message);
         }
     },
 
