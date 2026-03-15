@@ -668,13 +668,7 @@ const app = {
             this.renderHistory();
             overlay.classList.add('hidden');
             
-            alert("¡Mazo generado! \n\nInstrucciones:\n1. Pulsa la notificación o abre 'Cuestionario_Mazo.apkg' en Descargas.\n2. Elige AnkiDroid para abrirlo.");
-
-            this.selectedTests.clear();
-            this.renderHistory();
-            overlay.classList.add('hidden');
-            
-            alert("¡Fichero generado! Para instalarlo:\n\n1. Abre AnkiDroid.\n2. Pulsa 3 puntos -> Importar.\n3. Selecciona 'Cuestionario_Anki.anki2' en tu carpeta Descargas.");
+            alert("¡Mazo generado con éxito!\n\nSi tu móvil te pide 'Extraer', NO LO HAGAS. Sigue estos pasos:\n1. Abre AnkiDroid.\n2. Pulsa los 3 puntos (arriba) -> Importar.\n3. Selecciona 'Cuestionario_Mazo.apkg' en tu carpeta Descargas.");
 
         } catch (err) {
             console.error("DEBUG ANKI:", err);
