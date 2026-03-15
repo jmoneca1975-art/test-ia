@@ -73,24 +73,15 @@ const app = {
         // Botón nuevo test
         const btnNew = document.getElementById('btn-new-test');
         if (btnNew) {
-            btnNew.addEventListener('click', () => {
-                this.currentTestName = "";
-                const topicEl = document.getElementById('test-topic');
-                if (topicEl) topicEl.value = "";
-                this.switchView('config-view');
-            });
-        }
-
-        // Limpiar estado de PDF si el usuario escribe manualmente
-        const topicEl = document.getElementById('test-topic');
-        if (topicEl) {
-            topicEl.addEventListener('input', (e) => {
-                if (!e.isTrusted) return;
+            btnNew.onclick = () => {
                 this.currentPdfPages = null;
                 this.currentPdfFile = null;
+                const topicEl = document.getElementById('test-topic');
+                if (topicEl) topicEl.value = "";
                 const rangeContainer = document.getElementById('page-range-container');
                 if (rangeContainer) rangeContainer.classList.add('hidden');
-            });
+                this.switchView('config-view');
+            };
         }
 
         // Botón Anki
@@ -249,14 +240,14 @@ const app = {
             localStorage.setItem('credit_balance', this.creditBalance);
             this.updateCreditUI();
 
-            // Persistencia Automática con nombre personalizado o sugerido
-            let rangeSuffix = "";
+            // Persistencia Automática
             const endPage = (this.currentEndPage === null) ? this.currentStartPage : this.currentEndPage;
-            if (this.currentPdfFile) {
-                rangeSuffix = ` (págs ${this.currentStartPage}-${endPage})`;
-            }
-            const finalName = (this.currentTestName || topic.split('\n')[0].substring(0, 30) || "Test IA") + rangeSuffix;
-            this.saveToLibrary(`IA: ${finalName}`, questions);
+            const pdfName = this.currentPdfFile ? (this.pdfLibrary.find(p => p.file === this.currentPdfFile)?.name || "Documento") : "";
+            const finalName = this.currentPdfFile 
+                ? `PDF: ${pdfName} (págs ${this.currentStartPage}-${endPage})`
+                : `IA: ${topic.substring(0, 30)}...`;
+                
+            this.saveToLibrary(finalName, questions);
 
             overlay.classList.add('hidden');
             this.startQuiz();
@@ -766,9 +757,9 @@ const app = {
             ProgressTracker.updateStatus("Extrayendo base de datos...");
             const dbBuffer = await dbFile.async("uint8array");
 
-            // Cargar SQL.js
+            // Cargar SQL.js (Sincronizado con v1.10.1)
             const SQL = await initSqlJs({
-                locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm`
+                locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.1/${file}`
             });
             const db = new SQL.Database(dbBuffer);
             

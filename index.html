@@ -57,7 +57,7 @@
 
                 <div class="section-header">
                     <h3>Recientes</h3>
-                    <a href="#" class="see-all">Ver todo</a>
+                    <a href="#" class="see-all" onclick="app.switchView('library-view')">Ver todo</a>
                 </div>
 
                 <div id="recent-list" class="test-grid">
@@ -113,7 +113,10 @@
                 <h2>Nuevo Test</h2>
             </nav>
             <main class="content-padding">
-                <!-- Sección de Texto Removida por redundancia con PDF -->
+                <div class="input-group">
+                    <label>Tema o Texto para el Test</label>
+                    <textarea id="test-topic" placeholder="Ej: Las leyes de Newton, Biología celular, o pega un texto aquí..."></textarea>
+                </div>
                 <div class="input-group">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <label>Documento PDF (Opcional)</label>
