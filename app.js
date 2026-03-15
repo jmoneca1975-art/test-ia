@@ -1,3 +1,11 @@
+const ProgressTracker = {
+    updateStatus(msg) {
+        const el = document.getElementById('loading-status');
+        if (el) el.textContent = msg;
+        console.log("[Progress]", msg);
+    }
+};
+
 const app = {
     currentQuestions: [],
     currentIndex: 0,
@@ -63,49 +71,42 @@ const app = {
 
     setupEventListeners() {
         // Botón nuevo test
-        document.getElementById('btn-new-test').addEventListener('click', () => {
-            // Limpiar estado previo para nuevo test manual
-            this.currentTestName = "";
-            const topicEl = document.getElementById('test-topic');
-            if (topicEl) topicEl.value = "";
-            this.switchView('config-view');
-        });
-
-        // Limpiar estado de PDF si el usuario escribe manualmente (desactivado si es carga automática)
-        const topicEl = document.getElementById('test-topic');
-        if (topicEl) {
-            topicEl.addEventListener('input', (e) => {
-                if (!e.isTrusted) return; // Si el cambio es por código (isTrusted=false), no resetear
-                this.currentPdfPages = null;
-                this.currentPdfFile = null;
-                document.getElementById('page-range-container').classList.add('hidden');
-                const statsPages = document.getElementById('stats-pages');
-                const statsChars = document.getElementById('stats-chars');
-                if (statsPages) statsPages.textContent = `Páginas: 0`;
-                if (statsChars) statsChars.textContent = `Caracteres: ${topicEl.value.length.toLocaleString()}`;
+        const btnNew = document.getElementById('btn-new-test');
+        if (btnNew) {
+            btnNew.addEventListener('click', () => {
+                this.currentTestName = "";
+                const topicEl = document.getElementById('test-topic');
+                if (topicEl) topicEl.value = "";
+                this.switchView('config-view');
             });
         }
 
-        // Botón subir PDF (Generación)
-        document.getElementById('btn-upload-pdf').addEventListener('click', () => {
-            this.triggerFilePicker('.pdf');
-        });
+        // Limpiar estado de PDF si el usuario escribe manualmente
+        const topicEl = document.getElementById('test-topic');
+        if (topicEl) {
+            topicEl.addEventListener('input', (e) => {
+                if (!e.isTrusted) return;
+                this.currentPdfPages = null;
+                this.currentPdfFile = null;
+                const rangeContainer = document.getElementById('page-range-container');
+                if (rangeContainer) rangeContainer.classList.add('hidden');
+            });
+        }
 
-        // Botón importar TXT removido
+        // Botón Anki
+        const btnAnki = document.getElementById('btn-import-anki');
+        if (btnAnki) {
+            btnAnki.addEventListener('click', () => {
+                if (this.selectedTests.size > 0) this.exportToAnki();
+                else this.triggerFilePicker('.apkg');
+            });
+        }
 
-        // Botón Anki (Exportar si hay seleccionados, si no importar)
-        document.getElementById('btn-import-anki').addEventListener('click', () => {
-            if (this.selectedTests.size > 0) {
-                this.exportToAnki();
-            } else {
-                this.triggerFilePicker('.apkg');
-            }
-        });
-
-        // Botón Repasar Errores (Dinamizado)
-        document.getElementById('btn-review-errors').addEventListener('click', () => {
-            this.loadFailedQuiz();
-        });
+        // Botón Repasar Errores
+        const btnErrors = document.getElementById('btn-review-errors');
+        if (btnErrors) {
+            btnErrors.addEventListener('click', () => this.loadFailedQuiz());
+        }
 
         // Chips de selección
         document.querySelectorAll('.chip').forEach(chip => {
@@ -116,14 +117,16 @@ const app = {
         });
 
         // Generar Test
-        document.getElementById('btn-start-generation').addEventListener('click', () => {
-            this.generateQuiz();
-        });
+        const btnGen = document.getElementById('btn-start-generation');
+        if (btnGen) {
+            btnGen.addEventListener('click', () => this.generateQuiz());
+        }
 
         // Botón siguiente pregunta
-        document.getElementById('btn-next').addEventListener('click', () => {
-            this.nextQuestion();
-        });
+        const btnNext = document.getElementById('btn-next');
+        if (btnNext) {
+            btnNext.addEventListener('click', () => this.nextQuestion());
+        }
     },
 
     switchView(viewId) {
@@ -1044,11 +1047,5 @@ const app = {
     }
 };
 
-const ProgressTracker = {
-    updateStatus(text) {
-        const el = document.getElementById('loading-status');
-        if (el) el.textContent = text;
-    }
-};
 
 document.addEventListener('DOMContentLoaded', () => app.init());
