@@ -643,33 +643,23 @@ const app = {
             const binaryDb = db.export();
             db.close();
 
-            const zip = new JSZip();
-            zip.file("collection.anki2", binaryDb);
-            zip.file("media", "{}");
-
-            const content = await zip.generateAsync({ type: "blob", mimeType: "application/apkg" });
+            // EXPORTACIÓN COMO FICHERO NORMAL (.anki2) - SIN ZIP
+            const blob = new Blob([binaryDb], { type: "application/octet-stream" });
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(content);
-            link.download = `Cuestionario_Mazo.apkg`;
+            link.href = URL.createObjectURL(blob);
+            link.download = `Cuestionario_Anki.anki2`;
             link.click();
 
             this.selectedTests.clear();
             this.renderHistory();
             overlay.classList.add('hidden');
             
-            alert("¡Mazo generado! \n\nInstrucciones:\n1. Si el móvil dice 'Extraer', NO LO HAGAS.\n2. Abre AnkiDroid -> 3 puntos -> Importar.\n3. Selecciona 'Cuestionario_Mazo.apkg'.");
+            alert("¡Fichero .anki2 generado!\n\nPara estudiarlo:\n1. Abre AnkiDroid.\n2. Pulsa 3 puntos -> Importar.\n3. Selecciona 'Cuestionario_Anki.anki2' en Descargas.");
 
         } catch (err) {
-            console.error("APKG ERROR:", err);
+            console.error("ANKI ERROR:", err);
             overlay.classList.add('hidden');
-            alert("Error: " + err.message);
-        }
-    },
-
-        } catch (err) {
-            console.error("DEBUG ANKI:", err);
-            overlay.classList.add('hidden');
-            alert("Error: " + err.message);
+            alert("Error al importar: " + err.message);
         }
     },
 
