@@ -18,8 +18,15 @@ const AIService = {
             3. Si el usuario pide ${num} preguntas y hay 20 páginas, genera las preguntas de forma EQUITATIVA (ej: una pregunta cada 1-2 páginas).
             4. ¡PROHIBIDO! No ignores el final del texto. Si las últimas preguntas no son de las últimas páginas, el test será rechazado.
             
+            REGLA DE FORMATO MAESTRA (CRÍTICO):
+            Para que el motor de parseo local funcione, los campos dentro del JSON deben contener marcas de texto específicas:
+            1. En cada objeto, el campo "pregunta" DEBE empezar con "PREGUNTA X: " (donde X es el número).
+            2. En el campo "opciones", cada opción DEBE empezar con su letra (A), B), C), D)).
+            3. En el campo "correcta_texto" (NUEVO), DEBES poner la letra seguida del checkmark "✓" (Ej: "A) ✓").
+            4. El campo "explicacion" DEBE empezar con la palabra "Explicación: ".
+
             FORMATO UNICAMENTE JSON:
-            {"preguntas": [{"pregunta": "...", "opciones": ["A) ...", "B) ...", "C) ...", "D) ..."], "correcta": 0, "explicacion": "Menciona aquí a qué PÁGINA del texto te refieres."}]}
+            {"preguntas": [{"pregunta": "PREGUNTA 1: [Texto]", "opciones": ["A) ...", "B) ...", "C) ...", "D) ..."], "correcta": 0, "correcta_texto": "A) ✓", "explicacion": "Explicación: Menciona aquí a qué PÁGINA del texto te refieres."}]}
             
             DIFICULTAD: Profesional / Oposición.
         `;

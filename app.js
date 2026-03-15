@@ -548,7 +548,7 @@ const app = {
     async exportToAnki() {
         if (this.selectedTests.size === 0) return;
 
-        ProgressTracker.updateStatus("Exportando a Anki (v36 - Python Core)...");
+        ProgressTracker.updateStatus("Exportando a Anki (v37 - Motor Python Sincronizado)...");
         const overlay = document.getElementById('loading-overlay');
         overlay.classList.remove('hidden');
 
@@ -564,7 +564,7 @@ const app = {
             const db = new SQL.Database();
             db.run("BEGIN TRANSACTION");
 
-            // Tablas idénticas al script Python
+            // Tablas idénticas al script Python v37
             db.run(`CREATE TABLE col (id integer primary key, crt integer not null, mod integer not null, scm integer not null, ver integer not null, dty integer not null, usn integer not null, ls integer not null, conf text not null, models text not null, decks text not null, dconf text not null, tags text not null)`);
             db.run(`CREATE TABLE notes (id integer primary key, guid text not null, mid integer not null, mod integer not null, usn integer not null, tags text not null, flds text not null, sfld text not null, csum integer not null, flags integer not null, data text not null)`);
             db.run(`CREATE TABLE cards (id integer primary key, nid integer not null, did integer not null, ord integer not null, mod integer not null, usn integer not null, type integer not null, queue integer not null, due integer not null, ivl integer not null, factor integer not null, reps integer not null, lapses integer not null, left integer not null, odue integer not null, odid integer not null, flags integer not null, data text not null)`);
@@ -574,31 +574,134 @@ const app = {
             const now = Math.floor(Date.now() / 1000);
             const mid = Date.now();
             const did = 1;
+            const deckName = selectedData.length === 1 ? selectedData[0].name : "Test Premium v37";
 
-            const deckName = selectedData.length === 1 ? selectedData[0].name : "Test IA Export";
+            // Estilos CSS del Script Maestro
+            const ankiCss = `
+                .card { font-family: 'Roboto', 'Segoe UI', Arial, sans-serif; font-size: 16px; text-align: left; color: #333333; background: #f5f7fa; padding: 15px; line-height: 1.5; }
+                .container { max-width: 100%; margin: 0 auto; }
+                .question-box, .options-box, .stats-box, .answer-box, .explanation-box { background: #ffffff; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid; }
+                .question-box { border-left-color: #3498db; }
+                .options-box { border-left-color: #f39c12; }
+                .stats-box { border-left-color: #9b59b6; }
+                .answer-box { border-left-color: #2ecc71; }
+                .explanation-box { border-left-color: #9b59b6; }
+                .question-header, .options-header, .stats-header, .answer-header, .explanation-header { font-size: 16px; font-weight: bold; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0; }
+                .question-header { color: #3498db; }
+                .options-header { color: #f39c12; }
+                .answer-header { color: #2ecc71; }
+                .options-grid { display: flex; flex-direction: column; gap: 12px; margin: 15px 0; }
+                .option-button { display: block; width: 100%; padding: 20px; background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 15px; color: #333333; font-size: 18px; text-align: left; cursor: pointer; transition: all 0.2s ease; box-sizing: border-box; text-decoration: none; }
+                .option-button.correct-answer { background: #27ae60 !important; color: white !important; border-color: #27ae60 !important; }
+                .option-button.incorrect-answer { background: #e74c3c !important; color: white !important; border-color: #e74c3c !important; }
+                .option-letter { font-weight: bold; color: #3498db; margin-right: 15px; }
+                .option-button.correct-answer .option-letter, .option-button.incorrect-answer .option-letter { color: white; }
+                .nsnc-button { display: inline-block; padding: 15px 25px; background: #95a5a6; border-radius: 15px; color: white; font-weight: bold; text-align: center; width: 100%; box-sizing: border-box; text-decoration: none; }
+                .result-message { margin-top: 20px; text-align: center; min-height: 40px; }
+                .result-correct { background: #27ae60; color: white; padding: 12px 24px; border-radius: 30px; }
+                .result-incorrect { background: #e74c3c; color: white; padding: 12px 24px; border-radius: 30px; }
+                .result-nsnc { background: #95a5a6; color: white; padding: 12px 24px; border-radius: 30px; }
+                .stats-container { display: flex; justify-content: space-around; }
+                .stat-item { text-align: center; }
+                .stat-label { font-size: 12px; color: #888888; display: block; }
+                .stat-value { font-size: 22px; font-weight: bold; display: block; }
+                .fail-value { color: #e74c3c; }
+                .status-message { text-align: center; padding: 10px; border-radius: 8px; margin-top: 10px; font-weight: bold; }
+                .status-perfect { background: #27ae60; color: white; }
+                .status-review { background: #e74c3c; color: white; }
+            `;
 
             const decks = {
                 "1": { 
                     id: 1, name: deckName, mod: now, usn: 0, lrnToday: [0, 0], revToday: [0, 0], 
                     newToday: [0, 0], timeToday: [0, 0], conf: 1, extendNew: 10, extendRev: 50, 
-                    collapsed: false, dyn: 0, desc: "Generado por Test IA - Compatible Python Core", browserCollapsed: false 
+                    collapsed: false, dyn: 0, desc: "Mazo Premium v37 - Motor Python Sincronizado", browserCollapsed: false 
                 }
             };
 
             const models = {};
             models[mid.toString()] = {
-                id: mid, name: "IA Test Model", type: 0, mod: now, usn: 0, sortf: 0, did: did,
+                id: mid, name: "Test Model AnkiDroid v37", type: 0, mod: now, usn: 0, sortf: 0, did: did,
                 flds: [
-                    { name: "Front", ord: 0, sticky: false, rtl: false, font: "Arial", size: 20, media: [] },
-                    { name: "Back", ord: 1, sticky: false, rtl: false, font: "Arial", size: 20, media: [] }
+                    { name: "Pregunta", ord: 0, sticky: false, rtl: false, font: "Roboto", size: 16, media: [] },
+                    { name: "Opciones", ord: 1, sticky: false, rtl: false, font: "Roboto", size: 15, media: [] },
+                    { name: "OpcionesBotones", ord: 2, sticky: false, rtl: false, font: "Roboto", size: 15, media: [] },
+                    { name: "Respuesta", ord: 3, sticky: false, rtl: false, font: "Roboto", size: 16, media: [] },
+                    { name: "RespuestaLetra", ord: 4, sticky: false, rtl: false, font: "Roboto", size: 16, media: [] },
+                    { name: "Explicación", ord: 5, sticky: false, rtl: false, font: "Roboto", size: 15, media: [] },
+                    { name: "MaxReps", ord: 6, sticky: false, rtl: false, font: "Roboto", size: 12, media: [] },
+                    { name: "id", ord: 7, sticky: false, rtl: false, font: "Roboto", size: 12, media: [] },
+                    { name: "Fuente", ord: 8, sticky: false, rtl: false, font: "Roboto", size: 12, media: [] }
                 ],
                 tmpls: [{ 
-                    name: "Card 1", ord: 0, 
-                    qfmt: "<div style='font-family: Arial; font-size: 20px; text-align: center; padding: 20px;'>{{Front}}</div>", 
-                    afmt: "<div style='font-family: Arial; font-size: 20px; text-align: center; padding: 20px;'>{{FrontSide}}\n\n<hr id=answer>\n\n{{Back}}</div>" 
+                    name: "Pregunta-Respuesta Premium", ord: 0, 
+                    qfmt: `
+                        <div class='container'>
+                            <div class='question-box'>
+                                <div class='question-header'>📝 Pregunta</div>
+                                <div class='question-text'>{{Pregunta}}</div>
+                            </div>
+                            <div class='options-box'>
+                                <div class='options-header'>🔍 Selecciona una opción:</div>
+                                <div class='options-grid' id='options-grid-{{id}}'>
+                                    {{OpcionesBotones}}
+                                </div>
+                                <div class='nsnc-container' style='margin-top:15px;'>
+                                    <a href='#' class='nsnc-button' onclick="return handleNSNC('{{id}}')">❓ NS/NC</a>
+                                </div>
+                                <div id='result-message-{{id}}' class='result-message'></div>
+                            </div>
+                            <div class='stats-box'>
+                                <div class='stats-container'>
+                                    <div class='stat-item'><span class='stat-label'>Fallos</span><span class='stat-value fail-value' id='fail-count-{{id}}'>0</span></div>
+                                    <div class='stat-item'><span class='stat-label'>Máx</span><span class='stat-value' id='max-reps-{{id}}'>{{MaxReps}}</span></div>
+                                </div>
+                                <div id='status-message-{{id}}' class='status-message'></div>
+                            </div>
+                        </div>
+                        <script>
+                            var qid = "{{id}}"; var correct = "{{RespuestaLetra}}"; var max = parseInt("{{MaxReps}}") || 3;
+                            var fails = parseInt(localStorage.getItem('f_' + qid) || '0');
+                            document.getElementById('fail-count-'+qid).innerHTML = fails;
+                            function checkAnswer(sel, id) {
+                                if (window.answered) return false; window.answered=true;
+                                var res = document.getElementById('result-message-'+id);
+                                if (sel === correct) {
+                                    res.innerHTML = "<span class='result-correct'>✓ ¡Correcto!</span>";
+                                    document.getElementById('option-'+sel+'-'+id).classList.add('correct-answer');
+                                } else {
+                                    fails++; localStorage.setItem('f_'+id, fails);
+                                    document.getElementById('fail-count-'+id).innerHTML = fails;
+                                    res.innerHTML = "<span class='result-incorrect'>✗ Incorrecto</span>";
+                                    document.getElementById('option-'+sel+'-'+id).classList.add('incorrect-answer');
+                                    document.getElementById('option-'+correct+'-'+id).classList.add('correct-answer');
+                                }
+                                updateStatus(id); return false;
+                            }
+                            function handleNSNC(id) {
+                                if (window.answered) return false; window.answered=true;
+                                document.getElementById('result-message-'+id).innerHTML = "<span class='result-nsnc'>❓ NS/NC</span>";
+                                document.getElementById('option-'+correct+'-'+id).classList.add('correct-answer');
+                                updateStatus(id); return false;
+                            }
+                            function updateStatus(id) {
+                                var s = document.getElementById('status-message-'+id);
+                                s.innerHTML = fails > 0 ? "<span class='status-review'>🔴 Repasar</span>" : "<span class='status-perfect'>🌟 Dominada</span>";
+                            }
+                            updateStatus(qid);
+                        </script>
+                    `, 
+                    afmt: `
+                        <div class='container'>
+                            <div class='question-box'><div class='question-header'>📝 Pregunta</div><div class='question-text'>{{Pregunta}}</div></div>
+                            <div class='answer-box'><div class='answer-header'>✅ Respuesta correcta</div><div class='answer-text'>{{Respuesta}}</div></div>
+                            <div class='explanation-box'><div class='explanation-header'>📚 Explicación</div><div class='explanation-text'>{{Explicación}}</div></div>
+                            <div class='stats-box'><div class='stats-container'><div class='stat-item'><span class='stat-label'>Historial Fallos</span><span class='stat-value fail-value'>${"{{"}localStorage:f_{{id}}{{"}}"}</span></div></div></div>
+                        </div>
+                    ` 
                 }],
-                css: ".card { font-family: arial; font-size: 20px; text-align: center; color: black; background-color: white; }",
-                req: [[0, "all", [0]]],
+                css: ankiCss,
+                req: [[0, "all", [0, 1, 2, 3, 4, 5, 6, 7, 8]]],
                 latexPre: "", latexPost: "", tags: [], usn: 0, vers: []
             };
 
@@ -612,7 +715,6 @@ const app = {
                 }
             };
 
-            // INSERTAR COLECCTION (versión 11, usn 0)
             db.run("INSERT INTO col (id, crt, mod, scm, ver, dty, usn, ls, conf, models, decks, dconf, tags) VALUES (1, ?, ?, ?, 11, 0, 0, ?, '{}', ?, ?, ?, '{}')", 
                 [now, now, now, now, JSON.stringify(models), JSON.stringify(decks), JSON.stringify(dconf)]
             );
@@ -620,55 +722,78 @@ const app = {
             const stmtNote = db.prepare("INSERT INTO notes (id, guid, mid, mod, usn, tags, flds, sfld, csum, flags, data) VALUES (?, ?, ?, ?, 0, '', ?, ?, 0, 0, '')");
             const stmtCard = db.prepare("INSERT INTO cards (id, nid, did, ord, mod, usn, type, queue, due, ivl, factor, reps, lapses, left, odue, odid, flags, data) VALUES (?, ?, ?, 0, ?, 0, 0, 0, ?, 0, 2500, 0, 0, 0, 0, 0, 0, '')");
 
-            let count = 0;
+            let noteCount = 0;
             const ts = Date.now();
+
             for (const test of selectedData) {
                 for (const q of test.data) {
-                    const nid = ts + (count * 2);
+                    const nid = ts + (noteCount * 2);
                     const cid = nid + 1;
                     const guid = Math.random().toString(36).substring(2, 12);
+                    const questionId = Math.random().toString(36).substring(2, 10);
                     
-                    const f = `<b>${test.name}</b><br><br>${q.pregunta}`;
-                    let b = `Respuesta: <b>${q.respuesta}</b><br><br>`;
-                    if (q.opciones) b += "<ul><li>" + q.opciones.join("</li><li>") + "</li></ul>";
-                    if (q.explicacion) b += `<br><div style='color:#6366f1;'>💡 ${q.explicacion}</div>`;
+                    // Generar OpcionesBotones HTML
+                    let optionsText = "";
+                    let optionsButtons = "";
+                    const letters = ['A', 'B', 'C', 'D', 'E'];
+                    
+                    q.opciones.forEach((opt, idx) => {
+                        const letter = letters[idx];
+                        optionsText += `<div><strong style='color:#f39c12;'>${letter})</strong> ${opt}</div>`;
+                        optionsButtons += `
+                            <a href='#' class='option-button' id='option-${letter}-${questionId}' onclick="return checkAnswer('${letter}', '${questionId}')">
+                                <span class='option-letter'>${letter})</span>
+                                <span class='option-text'>${opt}</span>
+                            </a>
+                        `;
+                    });
 
-                    stmtNote.run([nid, guid, mid, now, `${f}\u001f${b}`, f.substring(0, 100)]);
-                    stmtCard.run([cid, nid, did, now, count + 1]);
-                    count++;
+                    const correctLetter = letters[q.correcta] || "A";
+                    const answerText = `<div><strong style='color:#2ecc71;'>${correctLetter})</strong> ${q.opciones[q.correcta]}</div>`;
+                    
+                    // Ensamblar flds (9 campos)
+                    const fields = [
+                        q.pregunta,          // 0: Pregunta
+                        optionsText,        // 1: Opciones HTML
+                        optionsButtons,     // 2: OpcionesBotones HTML
+                        answerText,         // 3: Respuesta Detallada
+                        correctLetter,      // 4: Respuesta Letra
+                        q.explicacion || "", // 5: Explicación
+                        "3",                // 6: MaxReps
+                        questionId,         // 7: id para localStorage
+                        test.name           // 8: Fuente
+                    ].join('\x1f');
+
+                    stmtNote.run([nid, guid, mid, now, fields, q.pregunta.substring(0, 100)]);
+                    stmtCard.run([cid, nid, did, now, noteCount + 1]);
+                    noteCount++;
                 }
             }
 
-            stmtNote.free();
-            stmtCard.free();
-            db.run("COMMIT");
+            stmtNote.free(); stmtCard.free(); db.run("COMMIT");
+            const binaryDb = db.export(); db.close();
 
-            const binaryDb = db.export();
-            db.close();
-
-            // EMPAQUETADO APKG (ZIP) - IDÉNTICO AL PYTHON
             const zip = new JSZip();
             zip.file("collection.anki2", binaryDb);
             zip.file("media", "{}");
 
-            const content = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+            const content = await zip.generateAsync({ type: "blob" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(content);
-            link.download = `Cuestionario_Mazo.apkg`;
+            link.download = `Premium_${deckName.replace(/\s+/g, '_')}.apkg`;
             link.click();
 
-            this.selectedTests.clear();
-            this.renderHistory();
+            this.selectedTests.clear(); this.renderHistory();
             overlay.classList.add('hidden');
-            
-            alert("¡Mazo .apkg generado con éxito!\n\nSe ha usado el motor de tu script Python para asegurar que funcione en tu móvil.");
+            alert("¡Mazo Premium v37 generado correctamente!\n\nSe han incluido botones interactivos y estadísticas compatibles con AnkiDroid.");
 
         } catch (err) {
             console.error("ANKI ERROR:", err);
             overlay.classList.add('hidden');
-            alert("Error en exportación v36: " + err.message);
+            alert("Error crítico v37: " + err.message);
         }
     },
+
 
     startQuiz() {
         this.switchView('quiz-view');
