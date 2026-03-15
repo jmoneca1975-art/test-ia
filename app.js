@@ -547,8 +547,8 @@ const app = {
 
     async exportToAnki() {
         if (this.selectedTests.size === 0) return;
-        
-        ProgressTracker.updateStatus("Exportando a Anki (v32)...");
+
+        ProgressTracker.updateStatus("Exportando a Anki (v36 - Python Core)...");
         const overlay = document.getElementById('loading-overlay');
         overlay.classList.remove('hidden');
 
@@ -564,7 +564,7 @@ const app = {
             const db = new SQL.Database();
             db.run("BEGIN TRANSACTION");
 
-            // Tablas estándar
+            // Tablas idénticas al script Python
             db.run(`CREATE TABLE col (id integer primary key, crt integer not null, mod integer not null, scm integer not null, ver integer not null, dty integer not null, usn integer not null, ls integer not null, conf text not null, models text not null, decks text not null, dconf text not null, tags text not null)`);
             db.run(`CREATE TABLE notes (id integer primary key, guid text not null, mid integer not null, mod integer not null, usn integer not null, tags text not null, flds text not null, sfld text not null, csum integer not null, flags integer not null, data text not null)`);
             db.run(`CREATE TABLE cards (id integer primary key, nid integer not null, did integer not null, ord integer not null, mod integer not null, usn integer not null, type integer not null, queue integer not null, due integer not null, ivl integer not null, factor integer not null, reps integer not null, lapses integer not null, left integer not null, odue integer not null, odid integer not null, flags integer not null, data text not null)`);
@@ -573,57 +573,69 @@ const app = {
 
             const now = Math.floor(Date.now() / 1000);
             const mid = Date.now();
-            const did = 1; // Mazo Default compatible
+            const did = 1;
 
             const deckName = selectedData.length === 1 ? selectedData[0].name : "Test IA Export";
-            
-            // Decks: ID 1 es especial, lo usamos para el nombre del test
+
             const decks = {
-                "1": { id: 1, mod: now, name: deckName, desc: "", collapsed: false, browserCollapsed: false, usn: -1, conf: 1, extendRev: 50, extendNew: 10 }
+                "1": { 
+                    id: 1, name: deckName, mod: now, usn: 0, lrnToday: [0, 0], revToday: [0, 0], 
+                    newToday: [0, 0], timeToday: [0, 0], conf: 1, extendNew: 10, extendRev: 50, 
+                    collapsed: false, dyn: 0, desc: "Generado por Test IA - Compatible Python Core", browserCollapsed: false 
+                }
             };
 
             const models = {};
             models[mid.toString()] = {
-                id: mid, name: "Basic", type: 0, mod: now, usn: -1,
-                flds: [{ name: "Front", ord: 0, sticky: false, rtl: false, font: "Arial", size: 20 }, { name: "Back", ord: 1, sticky: false, rtl: false, font: "Arial", size: 20 }],
-                tmpls: [{ name: "Card 1", ord: 0, qfmt: "{{Front}}", afmt: "{{FrontSide}}\n\n<hr id=answer>\n\n{{Back}}" }],
+                id: mid, name: "IA Test Model", type: 0, mod: now, usn: 0, sortf: 0, did: did,
+                flds: [
+                    { name: "Front", ord: 0, sticky: false, rtl: false, font: "Arial", size: 20, media: [] },
+                    { name: "Back", ord: 1, sticky: false, rtl: false, font: "Arial", size: 20, media: [] }
+                ],
+                tmpls: [{ 
+                    name: "Card 1", ord: 0, 
+                    qfmt: "<div style='font-family: Arial; font-size: 20px; text-align: center; padding: 20px;'>{{Front}}</div>", 
+                    afmt: "<div style='font-family: Arial; font-size: 20px; text-align: center; padding: 20px;'>{{FrontSide}}\n\n<hr id=answer>\n\n{{Back}}</div>" 
+                }],
                 css: ".card { font-family: arial; font-size: 20px; text-align: center; color: black; background-color: white; }",
-                did: did
+                req: [[0, "all", [0]]],
+                latexPre: "", latexPost: "", tags: [], usn: 0, vers: []
             };
 
             const dconf = {
                 "1": {
-                    id: 1, mod: now, name: "Default", usn: -1, maxTaken: 60, autoplay: true, timer: 0, replayq: true,
-                    new: { delays: [1, 10], ints: [1, 4, 7], initialFactor: 2500, separate: true, order: 1, perDay: 20, bury: false },
-                    rev: { perDay: 200, ivlFct: 1, maxIvl: 36500, bury: false, hardFactor: 1.2 },
-                    lapse: { delays: [10], mult: 0, minInt: 1, leechAction: 0, leechCutoff: 8 },
+                    id: 1, name: "Default", mod: now, usn: 0, maxTaken: 60, autoplay: true, replayq: true, timer: 0,
+                    new: { delays: [1, 10, 20, 60, 120], ints: [1, 4, 7, 14, 30], initialFactor: 2500, separate: true, order: 1, perDay: 9999, bury: false },
+                    rev: { perDay: 9999, ease4: 1.3, fuzz: 0.05, minSpace: 1, ivlFct: 1, maxIvl: 36500, bury: false },
+                    lapse: { delays: [10, 20, 60], mult: 0.5, minInt: 1, leechFails: 8, leechAction: 0 },
                     dyn: false
                 }
             };
-            
-            const conf = JSON.stringify({ nextPos: 1, est: true, activeDecks: [1], sortType: "noteFld", addToCur: true });
 
-            db.run("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, -1, 0, ?, ?, ?, ?, '{}')", 
-                [now, now, now, conf, JSON.stringify(models), JSON.stringify(decks), JSON.stringify(dconf)]
+            // INSERTAR COLECCTION (versión 11, usn 0)
+            db.run("INSERT INTO col (id, crt, mod, scm, ver, dty, usn, ls, conf, models, decks, dconf, tags) VALUES (1, ?, ?, ?, 11, 0, 0, ?, '{}', ?, ?, ?, '{}')", 
+                [now, now, now, now, JSON.stringify(models), JSON.stringify(decks), JSON.stringify(dconf)]
             );
 
-            const stmtNote = db.prepare("INSERT INTO notes VALUES (?, ?, ?, ?, -1, '', ?, ?, 0, 0, '')");
-            const stmtCard = db.prepare("INSERT INTO cards VALUES (?, ?, ?, 0, ?, -1, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')");
+            const stmtNote = db.prepare("INSERT INTO notes (id, guid, mid, mod, usn, tags, flds, sfld, csum, flags, data) VALUES (?, ?, ?, ?, 0, '', ?, ?, 0, 0, '')");
+            const stmtCard = db.prepare("INSERT INTO cards (id, nid, did, ord, mod, usn, type, queue, due, ivl, factor, reps, lapses, left, odue, odid, flags, data) VALUES (?, ?, ?, 0, ?, 0, 0, 0, ?, 0, 2500, 0, 0, 0, 0, 0, 0, '')");
 
-            let i = 0;
+            let count = 0;
             const ts = Date.now();
             for (const test of selectedData) {
                 for (const q of test.data) {
-                    const nid = ts + (i * 2);
-                    const guid = Math.random().toString(36).substring(2, 10);
+                    const nid = ts + (count * 2);
+                    const cid = nid + 1;
+                    const guid = Math.random().toString(36).substring(2, 12);
+                    
                     const f = `<b>${test.name}</b><br><br>${q.pregunta}`;
                     let b = `Respuesta: <b>${q.respuesta}</b><br><br>`;
                     if (q.opciones) b += "<ul><li>" + q.opciones.join("</li><li>") + "</li></ul>";
                     if (q.explicacion) b += `<br><div style='color:#6366f1;'>💡 ${q.explicacion}</div>`;
 
-                    stmtNote.run([nid, guid, mid, now, `${f}\u001f${b}`, f]);
-                    stmtCard.run([nid + 1, nid, did, now, i]);
-                    i++;
+                    stmtNote.run([nid, guid, mid, now, `${f}\u001f${b}`, f.substring(0, 100)]);
+                    stmtCard.run([cid, nid, did, now, count + 1]);
+                    count++;
                 }
             }
 
@@ -634,23 +646,27 @@ const app = {
             const binaryDb = db.export();
             db.close();
 
-            // EXPORTACIÓN COMO FICHERO NORMAL (.anki2) - SIN ZIP
-            const blob = new Blob([binaryDb], { type: "application/octet-stream" });
+            // EMPAQUETADO APKG (ZIP) - IDÉNTICO AL PYTHON
+            const zip = new JSZip();
+            zip.file("collection.anki2", binaryDb);
+            zip.file("media", "{}");
+
+            const content = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `Cuestionario_Anki.anki2`;
+            link.href = URL.createObjectURL(content);
+            link.download = `Cuestionario_Mazo.apkg`;
             link.click();
 
             this.selectedTests.clear();
             this.renderHistory();
             overlay.classList.add('hidden');
             
-            alert("¡Fichero .anki2 generado!\n\nPara estudiarlo:\n1. Abre AnkiDroid.\n2. Pulsa 3 puntos -> Importar.\n3. Selecciona 'Cuestionario_Anki.anki2' en Descargas.");
+            alert("¡Mazo .apkg generado con éxito!\n\nSe ha usado el motor de tu script Python para asegurar que funcione en tu móvil.");
 
         } catch (err) {
             console.error("ANKI ERROR:", err);
             overlay.classList.add('hidden');
-            alert("Error al importar: " + err.message);
+            alert("Error en exportación v36: " + err.message);
         }
     },
 
