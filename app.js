@@ -5,6 +5,9 @@ const app = {
     currentPdfFile: null,
     currentTestName: "",
     currentPdfPages: null,
+    currentStartPage: 1,
+    currentEndPage: 5,
+    maxPdfPages: 0,
     creditBalance: 0,
     
     init() {
@@ -65,6 +68,8 @@ const app = {
         document.getElementById('test-topic').addEventListener('input', (e) => {
             if (!e.isTrusted) return; // Si el cambio es por código (isTrusted=false), no resetear
             this.currentPdfPages = null;
+            this.currentPdfFile = null;
+            document.getElementById('page-range-container').classList.add('hidden');
             const statsPages = document.getElementById('stats-pages');
             const statsChars = document.getElementById('stats-chars');
             if (statsPages) statsPages.textContent = `Páginas: 0`;
@@ -168,12 +173,14 @@ const app = {
         try {
             let questions = [];
             
-            // MODO BATCH (Si viene de un PDF extraído recientemente)
-            if (this.currentPdfPages && this.currentPdfPages.length > 0) {
-                console.log("Iniciando MODO BATCH para PDF...");
-                const totalPages = this.currentPdfPages.length;
+            // MODO BATCH (Si viene de un PDF)
+            if (this.currentPdfFile) {
+                console.log("Iniciando MODO BATCH con selector visual...");
+                ProgressTracker.updateStatus("Extrayendo texto del rango...");
+                const extractionResult = await this.extractPdfText(this.currentPdfFile, this.currentStartPage, this.currentEndPage);
+                this.currentPdfPages = extractionResult.pages;
                 
-                // AHORA: Usamos el seleccionador (5,10,20) como "PREGUNTAS POR PÁGINA"
+                const totalPages = this.currentPdfPages.length;
                 const qPerPage = numQ; 
                 
                 for (let i = 0; i < totalPages; i++) {
@@ -194,13 +201,7 @@ const app = {
                     }
                 }
                 
-                // Mezclar resultados (Shuffle)
                 questions = questions.sort(() => Math.random() - 0.5);
-                
-                // YA NO recortamos. Dejamos que se acumule todo (Páginas * Preguntas/Pag)
-                console.log(`MODO BATCH Finalizado. Acumuladas ${questions.length} preguntas.`);
-                
-                // Limpiar páginas procesadas
                 this.currentPdfPages = null; 
 
             } else {
@@ -230,7 +231,11 @@ const app = {
             this.updateCreditUI();
 
             // Persistencia Automática con nombre personalizado o sugerido
-            const finalName = this.currentTestName || topic.split('\n')[0].substring(0, 30) || "Test IA";
+            let rangeSuffix = "";
+            if (this.currentStartPage && this.currentEndPage) {
+                rangeSuffix = ` (págs ${this.currentStartPage}-${this.currentEndPage})`;
+            }
+            const finalName = (this.currentTestName || topic.split('\n')[0].substring(0, 30) || "Test IA") + rangeSuffix;
             this.saveToLibrary(`IA: ${finalName}`, questions);
 
             overlay.classList.add('hidden');
@@ -323,14 +328,7 @@ const app = {
         
         // Solicitar nombre del test (por defecto el nombre del archivo sin extensión)
         const defaultName = file.name.replace(/\.[^/.]+$/, "");
-        const userChosenName = prompt("Nombre para este test:", defaultName);
-        if (userChosenName === null) return; // Cancelado
-        this.currentTestName = userChosenName || defaultName;
-
-        const start = prompt("¿Desde qué página quieres empezar?", "1");
-        const end = prompt("¿Hasta qué página?", "5");
-        
-        if (!start || !end) return;
+        this.currentTestName = prompt("Nombre para este test:", defaultName) || defaultName;
 
         const overlay = document.getElementById('loading-overlay');
         overlay.classList.remove('hidden');
@@ -340,29 +338,28 @@ const app = {
             if (!window.pdfjsLib) {
                 throw new Error("La librería PDF.js no se ha cargado correctamente. Comprueba tu conexión a internet.");
             }
-            const extractionResult = await this.extractPdfText(file, parseInt(start), parseInt(end));
-            this.currentPdfPages = extractionResult.pages;
-            const textToProcess = extractionResult.fullText;
             
-            console.log("Texto extraído con éxito (" + textToProcess.length + " caracteres)");
+            overlay.classList.remove('hidden');
+            ProgressTracker.updateStatus("Analizando PDF...");
+            
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            this.maxPdfPages = pdf.numPages;
+            
+            // Configurar selector visual
+            this.currentStartPage = 1;
+            this.currentEndPage = Math.min(5, pdf.numPages);
+            
+            document.getElementById('total-pdf-pages').textContent = pdf.numPages;
+            document.getElementById('val-start').textContent = this.currentStartPage;
+            document.getElementById('val-end').textContent = this.currentEndPage;
+            document.getElementById('page-range-container').classList.remove('hidden');
+            
             overlay.classList.add('hidden');
-            
-            // Forzar navegación a config y rellenar textarea
             this.switchView('config-view');
-            const topicEl = document.getElementById('test-topic');
-            if (topicEl) {
-                const totalPageCount = parseInt(end) - parseInt(start) + 1;
-                const summary = `--- RESUMEN DE EXTRACCIÓN ---\nDocumento: ${file.name}\nPáginas: ${start} a ${end} (Total: ${totalPageCount})\nLongitud: ${textToProcess.length} caracteres\n---------------------------\n\n`;
-                topicEl.value = summary + textToProcess;
-                topicEl.scrollTop = 0;
-                
-                // Actualizar contadores visuales (Stats)
-                const statsPages = document.getElementById('stats-pages');
-                const statsChars = document.getElementById('stats-chars');
-                if (statsPages) statsPages.textContent = `Páginas: ${totalPageCount}`;
-                if (statsChars) statsChars.textContent = `Caracteres: ${textToProcess.length.toLocaleString()}`;
-            }
-            alert(`✅ Texto extraído con éxito (${parseInt(end)-parseInt(start)+1} páginas).`);
+            
+            alert(`✅ PDF cargado: ${pdf.numPages} páginas disponibles.\nSelecciona el rango abajo.`);
+            
        } catch (err) {
             console.error("PDF EXTRACTION ERROR:", err);
             overlay.classList.add('hidden');
@@ -848,6 +845,21 @@ const app = {
 
     checkStripePayment() {
         // Obsoleto en v41 (Retorno a Bizum)
+    },
+
+    adjustPage(type, delta) {
+        if (type === 'start') {
+            this.currentStartPage = Math.max(1, Math.min(this.currentEndPage, this.currentStartPage + delta));
+            document.getElementById('val-start').textContent = this.currentStartPage;
+        } else {
+            this.currentEndPage = Math.max(this.currentStartPage, Math.min(this.maxPdfPages || 999, this.currentEndPage + delta));
+            document.getElementById('val-end').textContent = this.currentEndPage;
+        }
+        
+        // Efecto visual de rebote
+        const el = document.getElementById(type === 'start' ? 'val-start' : 'val-end');
+        el.style.transform = 'scale(1.2)';
+        setTimeout(() => el.style.transform = 'scale(1)', 100);
     }
 };
 

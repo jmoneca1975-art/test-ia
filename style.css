@@ -156,6 +156,54 @@ textarea {
     height: 120px;
 }
 
+.range-selector {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.stepper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stepper label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+.stepper-controls {
+    display: flex;
+    align-items: center;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.stepper-btn {
+    background: none;
+    border: none;
+    color: white;
+    padding: 10px 15px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.stepper-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.stepper-btn:active { background: rgba(255, 255, 255, 0.2); }
+
+.stepper-value {
+    flex: 1;
+    text-align: center;
+    font-weight: 700;
+    font-family: 'Outfit';
+    font-size: 1.1rem;
+}
+
 .chip-group { display: flex; gap: 12px; }
 .chip {
     padding: 10px 20px;

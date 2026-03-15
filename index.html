@@ -74,7 +74,7 @@
         <!-- Library / Books View -->
         <section id="library-view" class="view">
             <nav class="top-nav">
-                <h2>Mis Libros</h2>
+                <h2>Mis tests</h2>
                 <button class="btn-import-small" onclick="app.triggerFilePicker('.txt')">+</button>
             </nav>
             <main class="content-padding">
@@ -122,9 +122,35 @@
                 </div>
                 <div style="margin-top: 8px;">
                         <button type="button" class="btn-secondary" onclick="app.triggerFilePicker('.pdf')" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
-                            📂 Cargar texto desde PDF
+                            📂 Cambiar PDF
                         </button>
+                </div>
+
+                <!-- Selector de Rango Visual -->
+                <div id="page-range-container" class="input-group hidden">
+                    <label>Rango de páginas</label>
+                    <div class="range-selector">
+                        <div class="stepper">
+                            <label>Desde</label>
+                            <div class="stepper-controls">
+                                <button class="stepper-btn" onclick="app.adjustPage('start', -1)">-</button>
+                                <div id="val-start" class="stepper-value">1</div>
+                                <button class="stepper-btn" onclick="app.adjustPage('start', 1)">+</button>
+                            </div>
+                        </div>
+                        <div class="stepper">
+                            <label>Hasta</label>
+                            <div class="stepper-controls">
+                                <button class="stepper-btn" onclick="app.adjustPage('end', -1)">-</button>
+                                <div id="val-end" class="stepper-value">5</div>
+                                <button class="stepper-btn" onclick="app.adjustPage('end', 1)">+</button>
+                            </div>
+                        </div>
                     </div>
+                    <p style="font-size: 0.7rem; color: var(--text-dim); margin-top: 8px;">
+                        Selecciona un rango entre 1 y <span id="total-pdf-pages">--</span>
+                    </p>
+                </div>
                 <div class="input-group">
                     <label id="label-num-q">Número de preguntas</label>
                     <div class="chip-group">
@@ -232,7 +258,7 @@
             </button>
             <button class="tab-item" onclick="app.switchView('library-view')">
                 <span class="icon">📚</span>
-                <span class="label">Libros</span>
+                <span class="label">Tests</span>
             </button>
             <button class="tab-item" onclick="app.switchView('history-view')">
                 <span class="icon">⏳</span>
