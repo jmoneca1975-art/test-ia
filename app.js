@@ -588,25 +588,22 @@ const app = {
 
             const now = Math.floor(Date.now() / 1000);
             const mid = Date.now();
-            const did = Date.now() + 1;
+            
+            // Usamos siempre el mazo ID 1 para máxima compatibilidad al importar en móvil
+            const deckName = selectedData.length === 1 ? selectedData[0].name : "Test IA Pack";
+            const decks = {
+                "1": { id: 1, mod: now, name: deckName, desc: "Generado con Test IA", collapsed: false, browserCollapsed: false, usn: 0, conf: 1 }
+            };
 
-            // Modelo compatible (Basic)
             const models = {};
             models[mid.toString()] = {
-                id: mid, name: "TestIA_Model", type: 0, mod: now, usn: -1,
+                id: mid, name: "TestIA_Model", type: 0, mod: now, usn: 0,
                 flds: [{ name: "Front", ord: 0, sticky: false, rtl: false, font: "Arial", size: 20 }, { name: "Back", ord: 1, sticky: false, rtl: false, font: "Arial", size: 20 }],
                 tmpls: [{ name: "Card 1", ord: 0, qfmt: "{{Front}}", afmt: "{{FrontSide}}\n\n<hr id=answer>\n\n{{Back}}" }],
                 css: ".card { font-family: arial; font-size: 20px; text-align: center; color: black; background-color: white; }",
-                did: did
+                did: 1
             };
 
-            const deckName = selectedData.length === 1 ? selectedData[0].name : "Test IA Pack";
-            const decks = {
-                "1": { id: 1, mod: now, name: "Default", desc: "", collapsed: false, browserCollapsed: false, usn: -1, conf: 1 },
-                [did.toString()]: { id: did, mod: now, name: deckName, desc: "Generado con Test IA", collapsed: false, browserCollapsed: false, usn: -1, conf: 1 }
-            };
-
-            // DCONF COMPLETO (Estructura de fábrica Anki 2.1)
             const dconf = {
                 "1": {
                     id: 1, mod: now, name: "Default", usn: 0, maxTaken: 60, autoplay: true, timer: 0, replayq: true,
@@ -617,7 +614,6 @@ const app = {
                 }
             };
             
-            // CONF COMPLETO
             const conf = JSON.stringify({
                 nextPos: 1, est: true, activeDecks: [1], sortType: "noteFld", sortBackwards: false, 
                 addToCur: true, curDeck: 1, newSpread: 0, collapseTime: 1200, timeLim: 0, 
@@ -628,8 +624,8 @@ const app = {
                 [now, now, now, conf, JSON.stringify(models), JSON.stringify(decks), JSON.stringify(dconf)]
             );
 
-            const stmtNote = db.prepare("INSERT INTO notes VALUES (?, ?, ?, ?, -1, '', ?, ?, 0, 0, '')");
-            const stmtCard = db.prepare("INSERT INTO cards VALUES (?, ?, ?, 0, ?, -1, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')");
+            const stmtNote = db.prepare("INSERT INTO notes VALUES (?, ?, ?, ?, 0, '', ?, ?, 0, 0, '')");
+            const stmtCard = db.prepare("INSERT INTO cards VALUES (?, ?, ?, 0, ?, 0, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')");
 
             let noteCount = 0;
             const ts = Date.now();
@@ -639,13 +635,13 @@ const app = {
                     const nid = ts + noteCount;
                     const guid = Math.random().toString(36).substring(2, 10);
                     
-                    const front = `<b>${test.name}</b><br><br>${q.pregunta}`;
-                    let back = `Respuesta: <b>${q.respuesta}</b><br><br>`;
-                    if (q.opciones) back += "<ul><li>" + q.opciones.join("</li><li>") + "</li></ul>";
-                    if (q.explicacion) back += `<br><div style='color:#6366f1; font-size: 0.9em;'>💡 ${q.explicacion}</div>`;
+                    const f = `<b>${test.name}</b><br><br>${q.pregunta}`;
+                    let b = `Respuesta: <b>${q.respuesta}</b><br><br>`;
+                    if (q.opciones) b += "<ul><li>" + q.opciones.join("</li><li>") + "</li></ul>";
+                    if (q.explicacion) b += `<br><div style='color:#6366f1; font-size: 0.9em;'>💡 ${q.explicacion}</div>`;
 
-                    stmtNote.run([nid, guid, mid, now, `${front}\u001f${back}`, front]);
-                    stmtCard.run([nid + 1, nid, did, now, noteCount]);
+                    stmtNote.run([nid, guid, mid, now, `${f}\u001f${b}`, f]);
+                    stmtCard.run([nid + 1, nid, 1, now, noteCount]); // did = 1
                     noteCount += 2;
                 }
             }
@@ -657,11 +653,22 @@ const app = {
             const binaryDb = db.export();
             db.close();
 
-            const blob = new Blob([binaryDb], { type: "application/octet-stream" });
+            // EMPAQUETADO APGK (ZIP) - Es el único formato que AnkiDroid acepta como "Paquete"
+            const zip = new JSZip();
+            zip.file("collection.anki2", binaryDb);
+            zip.file("media", "{}");
+
+            const content = await zip.generateAsync({ type: "blob" });
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `Importar_en_Anki.anki2`;
+            link.href = URL.createObjectURL(content);
+            link.download = `Cuestionario_Mazo.apkg`;
             link.click();
+
+            this.selectedTests.clear();
+            this.renderHistory();
+            overlay.classList.add('hidden');
+            
+            alert("¡Mazo generado! \n\nInstrucciones:\n1. Pulsa la notificación o abre 'Cuestionario_Mazo.apkg' en Descargas.\n2. Elige AnkiDroid para abrirlo.");
 
             this.selectedTests.clear();
             this.renderHistory();
