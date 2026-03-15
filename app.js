@@ -588,7 +588,7 @@ const app = {
 
             const now = Math.floor(Date.now() / 1000);
             const mid = Date.now();
-            const did = Date.now(); // Usamos el timestamp como ID de mazo único
+            const did = Date.now() + 1;
 
             // Modelo compatible (Basic)
             const models = {};
@@ -606,23 +606,25 @@ const app = {
                 [did.toString()]: { id: did, mod: now, name: deckName, desc: "Generado con Test IA", collapsed: false, browserCollapsed: false, usn: -1, conf: 1 }
             };
 
+            // DCONF COMPLETO (Estructura de fábrica Anki 2.1)
             const dconf = {
                 "1": {
-                    id: 1, mod: now, name: "Default", usn: -1, maxTaken: 60, autoplay: true, timer: 0, replayq: true,
+                    id: 1, mod: now, name: "Default", usn: 0, maxTaken: 60, autoplay: true, timer: 0, replayq: true,
                     new: { delays: [1, 10], ints: [1, 4, 7], initialFactor: 2500, separate: true, order: 1, perDay: 20, bury: false },
-                    rev: { perDay: 200, ivlFct: 1, maxIvl: 36500, bury: false, hardFactor: 1.2 },
+                    rev: { perDay: 200, ivlFct: 1, maxIvl: 36500, bury: false, hardFactor: 1.2, minSpace: 1 },
                     lapse: { delays: [10], mult: 0, minInt: 1, leechAction: 0, leechCutoff: 8 },
                     dyn: false
                 }
             };
             
-            // Inserción en 'col' con configuración Estándar Anki 2.1
+            // CONF COMPLETO
             const conf = JSON.stringify({
                 nextPos: 1, est: true, activeDecks: [1], sortType: "noteFld", sortBackwards: false, 
                 addToCur: true, curDeck: 1, newSpread: 0, collapseTime: 1200, timeLim: 0, 
                 estTimes: true, dueCounts: true, curModel: mid.toString()
             });
-            db.run("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, -1, 0, ?, ?, ?, ?, '{}')", 
+
+            db.run("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, 0, 0, ?, ?, ?, ?, '{}')", 
                 [now, now, now, conf, JSON.stringify(models), JSON.stringify(decks), JSON.stringify(dconf)]
             );
 
@@ -630,7 +632,7 @@ const app = {
             const stmtCard = db.prepare("INSERT INTO cards VALUES (?, ?, ?, 0, ?, -1, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')");
 
             let noteCount = 0;
-            const ts = Date.now(); // This 'ts' is used for note IDs, not deck ID.
+            const ts = Date.now();
 
             for (const test of selectedData) {
                 for (const q of test.data) {
@@ -638,12 +640,11 @@ const app = {
                     const guid = Math.random().toString(36).substring(2, 10);
                     
                     const front = `<b>${test.name}</b><br><br>${q.pregunta}`;
-                    let back = `Respuesta: <b>${q.respuesta}</b><br><br`;
+                    let back = `Respuesta: <b>${q.respuesta}</b><br><br>`;
                     if (q.opciones) back += "<ul><li>" + q.opciones.join("</li><li>") + "</li></ul>";
                     if (q.explicacion) back += `<br><div style='color:#6366f1; font-size: 0.9em;'>💡 ${q.explicacion}</div>`;
 
                     stmtNote.run([nid, guid, mid, now, `${front}\u001f${back}`, front]);
-                    // Importante: did es el mazo específico
                     stmtCard.run([nid + 1, nid, did, now, noteCount]);
                     noteCount += 2;
                 }
@@ -656,11 +657,10 @@ const app = {
             const binaryDb = db.export();
             db.close();
 
-            // Exportamos como .anki2 directo (fichero normal, no ZIP)
-            const blob = new Blob([binaryDb], { type: "application/x-sqlite3" });
+            const blob = new Blob([binaryDb], { type: "application/octet-stream" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `Cuestionario_Anki.anki2`;
+            link.download = `Importar_en_Anki.anki2`;
             link.click();
 
             this.selectedTests.clear();
