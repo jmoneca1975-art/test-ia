@@ -842,11 +842,18 @@ const app = {
             zip.file("collection.anki2", binaryDb);
             zip.file("media", "{}");
 
-            const content = await zip.generateAsync({ type: "blob" });
+            const content = await zip.generateAsync({ 
+                type: "blob",
+                mimeType: "application/octet-stream" 
+            });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(content);
-            link.download = `Premium_${deckName.replace(/\s+/g, '_')}.apkg`;
+            const safeDeckName = deckName.replace(/[^a-z0-9]/gi, '_').substring(0, 50);
+            link.download = `${safeDeckName}.apkg`;
             link.click();
+            
+            // Limpieza del URL para liberar memoria
+            setTimeout(() => URL.revokeObjectURL(link.href), 10000);
 
             this.selectedTests.clear(); this.renderHistory();
             overlay.classList.add('hidden');
