@@ -14,7 +14,7 @@ const app = {
             const debugBanner = document.createElement('div');
             debugBanner.id = "debug-init";
             debugBanner.style = "position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;z-index:9999;padding:2px;pointer-events:none;";
-            debugBanner.textContent = "Booting v50...";
+            debugBanner.textContent = "Booting v51...";
             document.body.appendChild(debugBanner);
 
             // Inicializar Créditos
@@ -61,10 +61,10 @@ const app = {
             this.switchView('config-view');
         });
 
-        // Limpiar estado de PDF si el usuario escribe manualmente
-        document.getElementById('test-topic').addEventListener('input', () => {
+        // Limpiar estado de PDF si el usuario escribe manualmente (desactivado si es carga automática)
+        document.getElementById('test-topic').addEventListener('input', (e) => {
+            if (!e.isTrusted) return; // Si el cambio es por código (isTrusted=false), no resetear
             this.currentPdfPages = null;
-            // Resetear stats visuales
             const statsPages = document.getElementById('stats-pages');
             const statsChars = document.getElementById('stats-chars');
             if (statsPages) statsPages.textContent = `Páginas: 0`;
@@ -118,6 +118,16 @@ const app = {
         const targetView = document.getElementById(viewId);
         if (targetView) targetView.classList.add('active');
         
+        // Resetear etiqueta de preguntas si entramos en modo PDF
+        if (viewId === 'config-view') {
+            const labelQ = document.getElementById('label-num-q');
+            if (labelQ) {
+                labelQ.textContent = (this.currentPdfPages && this.currentPdfPages.length > 0) 
+                    ? "¿Cuántas preguntas por página?" 
+                    : "Número de preguntas";
+            }
+        }
+
         // Actualizar iconos de la barra de pestañas (Tab Bar)
         document.querySelectorAll('.tab-item').forEach(item => {
             item.classList.remove('active');
@@ -140,11 +150,17 @@ const app = {
             return;
         }
 
-        if (this.creditBalance < numQ) {
-            alert(`⚠️ Saldo insuficiente. Necesitas ${numQ} créditos y solo tienes ${this.creditBalance}.\nRecarga tu saldo en Ajustes.`);
+        let totalExpectedQ = numQ;
+        if (this.currentPdfPages && this.currentPdfPages.length > 0) {
+            totalExpectedQ = numQ * this.currentPdfPages.length;
+        }
+
+        if (this.creditBalance < totalExpectedQ) {
+            alert(`⚠️ Saldo insuficiente. Necesitas ${totalExpectedQ} créditos para este Test (${numQ} por página) y solo tienes ${this.creditBalance}.\nRecarga tu saldo en Ajustes.`);
             this.switchView('settings-view');
             return;
         }
+
 
         const overlay = document.getElementById('loading-overlay');
         overlay.classList.remove('hidden');
@@ -157,23 +173,24 @@ const app = {
                 console.log("Iniciando MODO BATCH para PDF...");
                 const totalPages = this.currentPdfPages.length;
                 
-                // Pedir exactamente el ratio necesario (min 1) para cubrir todo
-                const qPerPage = Math.max(1, Math.ceil(numQ / totalPages));
+                // AHORA: Usamos el seleccionador (5,10,20) como "PREGUNTAS POR PÁGINA"
+                const qPerPage = numQ; 
                 
                 for (let i = 0; i < totalPages; i++) {
                     const page = this.currentPdfPages[i];
-                    ProgressTracker.updateStatus(`Generando página ${i + 1} de ${totalPages}...`);
+                    ProgressTracker.updateStatus(`Generando página ${i + 1} de ${totalPages} (${qPerPage} preg/pag)...`);
                     
                     try {
                         const pageQuestions = await AIService.generateQuestions(page.text, qPerPage);
-                        if (Array.isArray(pageQuestions)) {
-                            // IMPORTANTE: Tomar solo lo solicitado por página para evitar sesgo
-                            const batch = pageQuestions.slice(0, qPerPage);
-                            batch.forEach(q => q.explicacion = `(Pág. ${page.num}) ${q.explicacion}`);
-                            questions = questions.concat(batch);
+                        if (Array.isArray(pageQuestions) && pageQuestions.length > 0) {
+                            // IMPORTANTE: Tomar lo que devuelva la IA (Acumulación Total)
+                            pageQuestions.forEach(q => {
+                                q.explicacion = `(Pág. ${page.num}) ${q.explicacion || ""}`;
+                            });
+                            questions = [...questions, ...pageQuestions];
                         }
                     } catch (e) {
-                        console.warn(`Fallo en página ${page.num}, saltando...`, e);
+                        console.error(`Error en página ${page.num}:`, e);
                     }
                 }
                 
@@ -185,6 +202,7 @@ const app = {
                 
                 // Limpiar páginas procesadas
                 this.currentPdfPages = null; 
+
             } else {
                 // MODO NORMAL (Texto libre o resumen)
                 console.log("Iniciando MODO NORMAL para texto libre...");
