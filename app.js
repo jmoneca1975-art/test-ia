@@ -701,10 +701,10 @@ const app = {
                         <div class='container'>
                             <div class='question-box'>
                                 <div class='question-header'>📝 Pregunta</div>
-                                <div class='question-text'>{{Pregunta}}</div>
+                                <div class='question-text' style='font-size: 1.1em; font-weight: 500;'>{{Pregunta}}</div>
                                 <div class='source-info' style='font-size:10px; color:#888; margin-top:5px;'>{{Fuente}}</div>
                             </div>
-                            <div class='options-box'>
+                            <div class='options-box' id='options-box-{{id}}'>
                                 <div class='options-header'>🔍 Selecciona una opción:</div>
                                 <div class='options-grid' id='options-grid-{{id}}'>
                                     {{OpcionesBotones}}
@@ -763,9 +763,20 @@ const app = {
                     `, 
                     afmt: `
                         <div class='container'>
-                            <div class='question-box'><div class='question-header'>📝 Pregunta</div><div class='question-text'>{{Pregunta}}</div></div>
-                            <div class='answer-box'><div class='answer-header'>✅ Respuesta correcta</div><div class='answer-text'>{{Respuesta}}</div></div>
-                            <div class='explanation-box'><div class='explanation-header'>📚 Explicación</div><div class='explanation-text'>{{Explicación}}</div></div>
+                            <div class='question-box' style='background: #eef2f7;'>
+                                <div class='question-header' style='color: #7f8c8d;'>📝 Pregunta</div>
+                                <div class='question-text' style='color: #7f8c8d;'>{{Pregunta}}</div>
+                            </div>
+                            <div class='answer-box'>
+                                <div class='answer-header'>✅ Respuesta correcta</div>
+                                <div class='answer-text' style='font-size: 1.2em; font-weight: bold;'>{{Respuesta}}</div>
+                            </div>
+                            {{#Explicación}}
+                            <div class='explanation-box'>
+                                <div class='explanation-header'>📚 Explicación</div>
+                                <div class='explanation-text'>{{Explicación}}</div>
+                            </div>
+                            {{/Explicación}}
                             <div class='source-info' style='text-align:center; font-size:12px; color:#888; margin-top:10px;'>Fuente: {{Fuente}} | ID: {{id}}</div>
                         </div>
                     ` 
@@ -809,17 +820,22 @@ const app = {
                     
                     q.opciones.forEach((opt, idx) => {
                         const letter = letters[idx];
-                        optionsText += `<div><strong style='color:#f39c12;'>${letter})</strong> ${opt}</div>`;
+                        // LIMPIEZA: Quitar prefijos A), a), A., 1), etc. para evitar duplicidad
+                        const cleanOpt = opt.replace(/^[A-Ea-e][).]\s*|^[1-5][).]\s*/, '').trim();
+                        
+                        optionsText += `<div><strong style='color:#f39c12;'>${letter})</strong> ${cleanOpt}</div>`;
                         optionsButtons += `
                             <a href='#' class='option-button' id='option-${letter}-${questionId}' onclick="return checkAnswer('${letter}', '${questionId}')">
                                 <span class='option-letter'>${letter})</span>
-                                <span class='option-text'>${opt}</span>
+                                <span class='option-text'>${cleanOpt}</span>
                             </a>
                         `;
                     });
 
                     const correctLetter = letters[q.correcta] || "A";
-                    const answerText = `<div><strong style='color:#2ecc71;'>${correctLetter})</strong> ${q.opciones[q.correcta]}</div>`;
+                    // LIMPIEZA también para la respuesta detallada
+                    const cleanCorrectOpt = (q.opciones[q.correcta] || "").replace(/^[A-Ea-e][).]\s*|^[1-5][).]\s*/, '').trim();
+                    const answerText = `<div><strong style='color:#2ecc71;'>${correctLetter})</strong> ${cleanCorrectOpt}</div>`;
                     
                     // Ensamblar flds (9 campos)
                     const fields = [
