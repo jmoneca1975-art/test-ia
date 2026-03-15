@@ -607,11 +607,21 @@ const app = {
             };
 
             const dconf = {
-                "1": { id: 1, mod: now, name: "Default", usn: -1, lrns: [1, 10], rev: { perDay: 200 }, new: { perDay: 20 } }
+                "1": {
+                    id: 1, mod: now, name: "Default", usn: -1, maxTaken: 60, autoplay: true, timer: 0, replayq: true,
+                    new: { delays: [1, 10], ints: [1, 4, 7], initialFactor: 2500, separate: true, order: 1, perDay: 20, bury: false },
+                    rev: { perDay: 200, ivlFct: 1, maxIvl: 36500, bury: false, hardFactor: 1.2 },
+                    lapse: { delays: [10], mult: 0, minInt: 1, leechAction: 0, leechCutoff: 8 },
+                    dyn: false
+                }
             };
             
-            // Inserción en 'col' con configuración más completa
-            const conf = JSON.stringify({ nextPos: 1, est: true, activeDecks: [1], sortType: "noteFld", sortBackwards: false, addToCur: true });
+            // Inserción en 'col' con configuración Estándar Anki 2.1
+            const conf = JSON.stringify({
+                nextPos: 1, est: true, activeDecks: [1], sortType: "noteFld", sortBackwards: false, 
+                addToCur: true, curDeck: 1, newSpread: 0, collapseTime: 1200, timeLim: 0, 
+                estTimes: true, dueCounts: true, curModel: mid.toString()
+            });
             db.run("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, -1, 0, ?, ?, ?, ?, '{}')", 
                 [now, now, now, conf, JSON.stringify(models), JSON.stringify(decks), JSON.stringify(dconf)]
             );
