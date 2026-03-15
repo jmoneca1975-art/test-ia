@@ -587,10 +587,9 @@ const app = {
             db.run(`CREATE TABLE cards (id integer primary key, nid integer not null, did integer not null, ord integer not null, mod integer not null, usn integer not null, type integer not null, queue integer not null, due integer not null, ivl integer not null, factor integer not null, reps integer not null, lapses integer not null, left integer not null, odue integer not null, odid integer not null, flags integer not null, data text not null)`);
             db.run(`CREATE TABLE revlog (id integer primary key, cid integer not null, usn integer not null, ease integer not null, ivl integer not null, lastIvl integer not null, factor integer not null, time integer not null, type integer not null)`);
             db.run(`CREATE TABLE graves (usn integer not null, oid integer not null, type integer not null)`);
-
             const now = Math.floor(Date.now() / 1000);
-            const mid = 1598282335123;
-            const did = 1;
+            const mid = Date.now(); // ID de modelo único
+            const did = Date.now() + 1; // ID de mazo único
 
             const models = {};
             models[mid] = {
@@ -600,7 +599,11 @@ const app = {
                 css: ".card { font-family: arial; font-size: 20px; text-align: center; color: black; background-color: white; }",
                 did: did
             };
-            const decks = { "1": { id: 1, mod: now, name: "Default", desc: "", collapsed: false, browserCollapsed: false, usn: -1, conf: 1, extendRev: 50, extendNew: 10 } };
+            
+            const deckName = selectedData.length === 1 ? selectedData[0].name : "Test IA Pack";
+            const decks = {};
+            decks["1"] = { id: 1, mod: now, name: "Default", desc: "", collapsed: false, browserCollapsed: false, usn: -1, conf: 1, extendRev: 50, extendNew: 10 };
+            decks[did.toString()] = { id: did, mod: now, name: deckName, desc: "Generado con Test IA", collapsed: false, browserCollapsed: false, usn: -1, conf: 1, extendRev: 50, extendNew: 10 };
             
             db.run("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, 0, 0, '{}', ?, ?, '{}', '{}')", [now, now, now, JSON.stringify(models), JSON.stringify(decks)]);
 
@@ -659,12 +662,7 @@ const app = {
         }
     },
 
-        } catch (err) {
-            console.error("Error en exportación Anki:", err);
-            overlay.classList.add('hidden');
-            alert("Error al generar Anki: " + err.message);
-        }
-    },
+
 
     startQuiz() {
         this.switchView('quiz-view');
