@@ -61,21 +61,25 @@ const app = {
         document.getElementById('btn-new-test').addEventListener('click', () => {
             // Limpiar estado previo para nuevo test manual
             this.currentTestName = "";
-            document.getElementById('test-topic').value = "";
+            const topicEl = document.getElementById('test-topic');
+            if (topicEl) topicEl.value = "";
             this.switchView('config-view');
         });
 
         // Limpiar estado de PDF si el usuario escribe manualmente (desactivado si es carga automática)
-        document.getElementById('test-topic').addEventListener('input', (e) => {
-            if (!e.isTrusted) return; // Si el cambio es por código (isTrusted=false), no resetear
-            this.currentPdfPages = null;
-            this.currentPdfFile = null;
-            document.getElementById('page-range-container').classList.add('hidden');
-            const statsPages = document.getElementById('stats-pages');
-            const statsChars = document.getElementById('stats-chars');
-            if (statsPages) statsPages.textContent = `Páginas: 0`;
-            if (statsChars) statsChars.textContent = `Caracteres: ${document.getElementById('test-topic').value.length.toLocaleString()}`;
-        });
+        const topicEl = document.getElementById('test-topic');
+        if (topicEl) {
+            topicEl.addEventListener('input', (e) => {
+                if (!e.isTrusted) return; // Si el cambio es por código (isTrusted=false), no resetear
+                this.currentPdfPages = null;
+                this.currentPdfFile = null;
+                document.getElementById('page-range-container').classList.add('hidden');
+                const statsPages = document.getElementById('stats-pages');
+                const statsChars = document.getElementById('stats-chars');
+                if (statsPages) statsPages.textContent = `Páginas: 0`;
+                if (statsChars) statsChars.textContent = `Caracteres: ${topicEl.value.length.toLocaleString()}`;
+            });
+        }
 
         // Botón subir PDF (Generación)
         document.getElementById('btn-upload-pdf').addEventListener('click', () => {
@@ -148,17 +152,21 @@ const app = {
     },
 
     async generateQuiz() {
-        const topic = document.getElementById('test-topic').value;
+        const topicEl = document.getElementById('test-topic');
+        const topic = topicEl ? topicEl.value : "";
         const numQ = parseInt(document.querySelector('.chip.active')?.dataset.val || 5);
 
-        if (!topic.trim()) {
-            alert("Por favor, introduce un tema o extrae texto de un PDF.");
+        if (!topic.trim() && !this.currentPdfFile) {
+            alert("Por favor, introduce un tema o selecciona un PDF de la lista.");
             return;
         }
 
         let totalExpectedQ = numQ;
-        if (this.currentPdfPages && this.currentPdfPages.length > 0) {
-            totalExpectedQ = numQ * this.currentPdfPages.length;
+        // Si hay un PDF, calculamos los créditos según el rango (si el rango no se ha definido, asumimos 1 por ahora o lo validamos)
+        if (this.currentPdfFile) {
+            const endPage = (this.currentEndPage === null) ? this.currentStartPage : this.currentEndPage;
+            const numPages = (endPage - this.currentStartPage) + 1;
+            totalExpectedQ = numQ * numPages;
         }
 
         if (this.creditBalance < totalExpectedQ) {
