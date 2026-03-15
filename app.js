@@ -557,29 +557,23 @@ const app = {
     async exportToAnki() {
         if (this.selectedTests.size === 0) return;
         
-        ProgressTracker.updateStatus("Exportación Anki (v23)...");
+        ProgressTracker.updateStatus("Exportando a Anki (v32)...");
         const overlay = document.getElementById('loading-overlay');
         overlay.classList.remove('hidden');
 
         try {
             const library = JSON.parse(localStorage.getItem('test_library') || '[]');
             const selectedData = library.filter(t => this.selectedTests.has(t.id));
-            
             if (selectedData.length === 0) throw new Error("No hay tests seleccionados.");
-
-            if (typeof initSqlJs !== 'function') {
-                throw new Error("El motor SQL no está disponible.");
-            }
 
             const SQL = await initSqlJs({
                 locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.1/${file}`
             });
 
             const db = new SQL.Database();
-            
             db.run("BEGIN TRANSACTION");
 
-            // Esquema Anki 2.1 estándar
+            // Tablas estándar
             db.run(`CREATE TABLE col (id integer primary key, crt integer not null, mod integer not null, scm integer not null, ver integer not null, dty integer not null, usn integer not null, ls integer not null, conf text not null, models text not null, decks text not null, dconf text not null, tags text not null)`);
             db.run(`CREATE TABLE notes (id integer primary key, guid text not null, mid integer not null, mod integer not null, usn integer not null, tags text not null, flds text not null, sfld text not null, csum integer not null, flags integer not null, data text not null)`);
             db.run(`CREATE TABLE cards (id integer primary key, nid integer not null, did integer not null, ord integer not null, mod integer not null, usn integer not null, type integer not null, queue integer not null, due integer not null, ivl integer not null, factor integer not null, reps integer not null, lapses integer not null, left integer not null, odue integer not null, odid integer not null, flags integer not null, data text not null)`);
@@ -588,61 +582,57 @@ const app = {
 
             const now = Math.floor(Date.now() / 1000);
             const mid = Date.now();
+            const did = 1; // Mazo Default compatible
+
+            const deckName = selectedData.length === 1 ? selectedData[0].name : "Test IA Export";
             
-            // Usamos siempre el mazo ID 1 para máxima compatibilidad al importar en móvil
-            const deckName = selectedData.length === 1 ? selectedData[0].name : "Test IA Pack";
+            // Decks: ID 1 es especial, lo usamos para el nombre del test
             const decks = {
-                "1": { id: 1, mod: now, name: deckName, desc: "Generado con Test IA", collapsed: false, browserCollapsed: false, usn: 0, conf: 1 }
+                "1": { id: 1, mod: now, name: deckName, desc: "", collapsed: false, browserCollapsed: false, usn: -1, conf: 1, extendRev: 50, extendNew: 10 }
             };
 
             const models = {};
             models[mid.toString()] = {
-                id: mid, name: "TestIA_Model", type: 0, mod: now, usn: 0,
+                id: mid, name: "Basic", type: 0, mod: now, usn: -1,
                 flds: [{ name: "Front", ord: 0, sticky: false, rtl: false, font: "Arial", size: 20 }, { name: "Back", ord: 1, sticky: false, rtl: false, font: "Arial", size: 20 }],
                 tmpls: [{ name: "Card 1", ord: 0, qfmt: "{{Front}}", afmt: "{{FrontSide}}\n\n<hr id=answer>\n\n{{Back}}" }],
                 css: ".card { font-family: arial; font-size: 20px; text-align: center; color: black; background-color: white; }",
-                did: 1
+                did: did
             };
 
             const dconf = {
                 "1": {
-                    id: 1, mod: now, name: "Default", usn: 0, maxTaken: 60, autoplay: true, timer: 0, replayq: true,
+                    id: 1, mod: now, name: "Default", usn: -1, maxTaken: 60, autoplay: true, timer: 0, replayq: true,
                     new: { delays: [1, 10], ints: [1, 4, 7], initialFactor: 2500, separate: true, order: 1, perDay: 20, bury: false },
-                    rev: { perDay: 200, ivlFct: 1, maxIvl: 36500, bury: false, hardFactor: 1.2, minSpace: 1 },
+                    rev: { perDay: 200, ivlFct: 1, maxIvl: 36500, bury: false, hardFactor: 1.2 },
                     lapse: { delays: [10], mult: 0, minInt: 1, leechAction: 0, leechCutoff: 8 },
                     dyn: false
                 }
             };
             
-            const conf = JSON.stringify({
-                nextPos: 1, est: true, activeDecks: [1], sortType: "noteFld", sortBackwards: false, 
-                addToCur: true, curDeck: 1, newSpread: 0, collapseTime: 1200, timeLim: 0, 
-                estTimes: true, dueCounts: true, curModel: mid.toString()
-            });
+            const conf = JSON.stringify({ nextPos: 1, est: true, activeDecks: [1], sortType: "noteFld", addToCur: true });
 
-            db.run("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, 0, 0, ?, ?, ?, ?, '{}')", 
+            db.run("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, -1, 0, ?, ?, ?, ?, '{}')", 
                 [now, now, now, conf, JSON.stringify(models), JSON.stringify(decks), JSON.stringify(dconf)]
             );
 
-            const stmtNote = db.prepare("INSERT INTO notes VALUES (?, ?, ?, ?, 0, '', ?, ?, 0, 0, '')");
-            const stmtCard = db.prepare("INSERT INTO cards VALUES (?, ?, ?, 0, ?, 0, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')");
+            const stmtNote = db.prepare("INSERT INTO notes VALUES (?, ?, ?, ?, -1, '', ?, ?, 0, 0, '')");
+            const stmtCard = db.prepare("INSERT INTO cards VALUES (?, ?, ?, 0, ?, -1, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')");
 
-            let noteCount = 0;
+            let i = 0;
             const ts = Date.now();
-
             for (const test of selectedData) {
                 for (const q of test.data) {
-                    const nid = ts + noteCount;
+                    const nid = ts + (i * 2);
                     const guid = Math.random().toString(36).substring(2, 10);
-                    
                     const f = `<b>${test.name}</b><br><br>${q.pregunta}`;
                     let b = `Respuesta: <b>${q.respuesta}</b><br><br>`;
                     if (q.opciones) b += "<ul><li>" + q.opciones.join("</li><li>") + "</li></ul>";
-                    if (q.explicacion) b += `<br><div style='color:#6366f1; font-size: 0.9em;'>💡 ${q.explicacion}</div>`;
+                    if (q.explicacion) b += `<br><div style='color:#6366f1;'>💡 ${q.explicacion}</div>`;
 
                     stmtNote.run([nid, guid, mid, now, `${f}\u001f${b}`, f]);
-                    stmtCard.run([nid + 1, nid, 1, now, noteCount]); // did = 1
-                    noteCount += 2;
+                    stmtCard.run([nid + 1, nid, did, now, i]);
+                    i++;
                 }
             }
 
@@ -653,12 +643,11 @@ const app = {
             const binaryDb = db.export();
             db.close();
 
-            // EMPAQUETADO APGK (ZIP) - Es el único formato que AnkiDroid acepta como "Paquete"
             const zip = new JSZip();
             zip.file("collection.anki2", binaryDb);
             zip.file("media", "{}");
 
-            const content = await zip.generateAsync({ type: "blob" });
+            const content = await zip.generateAsync({ type: "blob", mimeType: "application/apkg" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(content);
             link.download = `Cuestionario_Mazo.apkg`;
@@ -668,7 +657,14 @@ const app = {
             this.renderHistory();
             overlay.classList.add('hidden');
             
-            alert("¡Mazo generado con éxito!\n\nSi tu móvil te pide 'Extraer', NO LO HAGAS. Sigue estos pasos:\n1. Abre AnkiDroid.\n2. Pulsa los 3 puntos (arriba) -> Importar.\n3. Selecciona 'Cuestionario_Mazo.apkg' en tu carpeta Descargas.");
+            alert("¡Mazo generado! \n\nInstrucciones:\n1. Si el móvil dice 'Extraer', NO LO HAGAS.\n2. Abre AnkiDroid -> 3 puntos -> Importar.\n3. Selecciona 'Cuestionario_Mazo.apkg'.");
+
+        } catch (err) {
+            console.error("APKG ERROR:", err);
+            overlay.classList.add('hidden');
+            alert("Error: " + err.message);
+        }
+    },
 
         } catch (err) {
             console.error("DEBUG ANKI:", err);
