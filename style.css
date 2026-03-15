@@ -204,6 +204,43 @@ textarea {
     font-size: 1.1rem;
 }
 
+/* PDF Library in Config */
+.pdf-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.pdf-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.pdf-item:hover { border-color: var(--primary); background: rgba(99, 102, 241, 0.1); }
+.pdf-item.selected { border-color: var(--primary); background: rgba(99, 102, 241, 0.2); box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
+
+.pdf-item .icon { font-size: 1.2rem; }
+.pdf-item .name { flex: 1; font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pdf-item .pages { font-size: 0.75rem; color: var(--text-dim); }
+
+.empty-state-small {
+    padding: 15px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    background: var(--glass);
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+}
+
 .chip-group { display: flex; gap: 12px; }
 .chip {
     padding: 10px 20px;

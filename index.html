@@ -120,10 +120,15 @@
                         <span id="stats-chars">Caracteres: 0</span>
                     </div>
                 </div>
-                <div style="margin-top: 8px;">
-                        <button type="button" class="btn-secondary" onclick="app.triggerFilePicker('.pdf')" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
-                            📂 Cambiar PDF
-                        </button>
+                <div class="input-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label>Documento PDF (Opcional)</label>
+                        <button type="button" class="btn-import-small" onclick="app.triggerFilePicker('.pdf')">+</button>
+                    </div>
+                    <div id="pdf-library-list" class="pdf-list">
+                        <!-- Se llena dinámicamente -->
+                        <div class="empty-state-small">No hay PDFs subidos. Pulsa + para añadir uno.</div>
+                    </div>
                 </div>
 
                 <!-- Selector de Rango Visual -->

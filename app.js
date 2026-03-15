@@ -6,8 +6,9 @@ const app = {
     currentTestName: "",
     currentPdfPages: null,
     currentStartPage: 1,
-    currentEndPage: 5,
+    currentEndPage: null, // Inicialmente en blanco
     maxPdfPages: 0,
+    pdfLibrary: [], // Biblioteca de PDFs en sesión
     creditBalance: 0,
     
     init() {
@@ -176,8 +177,11 @@ const app = {
             // MODO BATCH (Si viene de un PDF)
             if (this.currentPdfFile) {
                 console.log("Iniciando MODO BATCH con selector visual...");
-                ProgressTracker.updateStatus("Extrayendo texto del rango...");
-                const extractionResult = await this.extractPdfText(this.currentPdfFile, this.currentStartPage, this.currentEndPage);
+                
+                // Extraer el texto justo ahora según el rango del selector
+                const endPage = (this.currentEndPage === null) ? this.currentStartPage : this.currentEndPage;
+                ProgressTracker.updateStatus(`Extrayendo texto del rango (${this.currentStartPage}-${endPage})...`);
+                const extractionResult = await this.extractPdfText(this.currentPdfFile, this.currentStartPage, endPage);
                 this.currentPdfPages = extractionResult.pages;
                 
                 const totalPages = this.currentPdfPages.length;
@@ -232,8 +236,9 @@ const app = {
 
             // Persistencia Automática con nombre personalizado o sugerido
             let rangeSuffix = "";
-            if (this.currentStartPage && this.currentEndPage) {
-                rangeSuffix = ` (págs ${this.currentStartPage}-${this.currentEndPage})`;
+            const endPage = (this.currentEndPage === null) ? this.currentStartPage : this.currentEndPage;
+            if (this.currentPdfFile) {
+                rangeSuffix = ` (págs ${this.currentStartPage}-${endPage})`;
             }
             const finalName = (this.currentTestName || topic.split('\n')[0].substring(0, 30) || "Test IA") + rangeSuffix;
             this.saveToLibrary(`IA: ${finalName}`, questions);
@@ -323,20 +328,55 @@ const app = {
         return questions;
     },
 
-    async handlePdfGeneration(file) {
-        this.currentPdfFile = file;
+    // --- GESTIÓN DE PDF LIBRARY ---
+    renderPdfLibrary() {
+        const container = document.getElementById('pdf-library-list');
+        if (!container) return;
+
+        if (this.pdfLibrary.length === 0) {
+            container.innerHTML = '<div class="empty-state-small">No hay PDFs subidos. Pulsa + para añadir uno.</div>';
+            return;
+        }
+
+        container.innerHTML = this.pdfLibrary.map(pdf => `
+            <div class="pdf-item ${this.currentPdfFile === pdf.file ? 'selected' : ''}" onclick="app.selectPdfFromLibrary(${pdf.id})">
+                <div class="icon">📄</div>
+                <div class="name">${pdf.name}</div>
+                <div class="pages">${pdf.pages} págs</div>
+            </div>
+        `).join('');
+    },
+
+    selectPdfFromLibrary(id) {
+        const item = this.pdfLibrary.find(p => p.id === id);
+        if (item) {
+            this.currentPdfFile = item.file;
+            this.maxPdfPages = item.pages;
+            this.currentStartPage = 1;
+            this.currentEndPage = null; // Volver a poner en blanco al cambiar
+            
+            this.updateSelectorUI();
+            this.renderPdfLibrary();
+        }
+    },
+
+    updateSelectorUI() {
+        const totalEl = document.getElementById('total-pdf-pages');
+        const startEl = document.getElementById('val-start');
+        const endEl = document.getElementById('val-end');
+        if (totalEl) totalEl.textContent = this.maxPdfPages;
+        if (startEl) startEl.textContent = this.currentStartPage;
+        if (endEl) endEl.textContent = this.currentEndPage === null ? "--" : this.currentEndPage;
         
-        // Solicitar nombre del test (por defecto el nombre del archivo sin extensión)
-        const defaultName = file.name.replace(/\.[^/.]+$/, "");
-        this.currentTestName = prompt("Nombre para este test:", defaultName) || defaultName;
+        const container = document.getElementById('page-range-container');
+        if (container) container.classList.remove('hidden');
+    },
 
+    async handlePdfGeneration(file) {
         const overlay = document.getElementById('loading-overlay');
-        overlay.classList.remove('hidden');
-        ProgressTracker.updateStatus("Extrayendo texto del PDF...");
-
         try {
             if (!window.pdfjsLib) {
-                throw new Error("La librería PDF.js no se ha cargado correctamente. Comprueba tu conexión a internet.");
+                throw new Error("La librería PDF.js no se ha cargado correctamente.");
             }
             
             overlay.classList.remove('hidden');
@@ -344,26 +384,28 @@ const app = {
             
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            this.maxPdfPages = pdf.numPages;
             
-            // Configurar selector visual
-            this.currentStartPage = 1;
-            this.currentEndPage = Math.min(5, pdf.numPages);
+            const pdfItem = {
+                id: Date.now(),
+                name: file.name,
+                pages: pdf.numPages,
+                file: file
+            };
             
-            document.getElementById('total-pdf-pages').textContent = pdf.numPages;
-            document.getElementById('val-start').textContent = this.currentStartPage;
-            document.getElementById('val-end').textContent = this.currentEndPage;
-            document.getElementById('page-range-container').classList.remove('hidden');
+            // Añadir a la biblioteca si no está (por nombre y tamaño)
+            const exists = this.pdfLibrary.find(p => p.name === file.name && p.pages === pdf.numPages);
+            if (!exists) {
+                this.pdfLibrary.unshift(pdfItem);
+            }
             
-            overlay.classList.add('hidden');
+            this.selectPdfFromLibrary(pdfItem.id);
             this.switchView('config-view');
-            
-            alert(`✅ PDF cargado: ${pdf.numPages} páginas disponibles.\nSelecciona el rango abajo.`);
+            overlay.classList.add('hidden');
             
        } catch (err) {
-            console.error("PDF EXTRACTION ERROR:", err);
+            console.error("PDF ERROR:", err);
             overlay.classList.add('hidden');
-            alert("❌ Error al extraer PDF: " + err.message + "\n\n(Asegúrate de que el PDF no tiene contraseña)");
+            alert("❌ Error al cargar PDF: " + err.message);
         }
     },
 
@@ -849,17 +891,29 @@ const app = {
 
     adjustPage(type, delta) {
         if (type === 'start') {
-            this.currentStartPage = Math.max(1, Math.min(this.currentEndPage, this.currentStartPage + delta));
+            const limit = (this.currentEndPage !== null) ? this.currentEndPage : (this.maxPdfPages || 9999);
+            this.currentStartPage = Math.max(1, Math.min(limit, this.currentStartPage + delta));
             document.getElementById('val-start').textContent = this.currentStartPage;
+            
+            // Si "Hasta" está en blanco, no forzamos nada aún
         } else {
-            this.currentEndPage = Math.max(this.currentStartPage, Math.min(this.maxPdfPages || 999, this.currentEndPage + delta));
+            // Lógica para "Hasta"
+            if (this.currentEndPage === null) {
+                // Si estaba en blanco, inicializamos con el valor de "Desde"
+                this.currentEndPage = this.currentStartPage;
+            } else {
+                this.currentEndPage = Math.max(this.currentStartPage, Math.min(this.maxPdfPages || 9999, this.currentEndPage + delta));
+            }
             document.getElementById('val-end').textContent = this.currentEndPage;
         }
         
         // Efecto visual de rebote
-        const el = document.getElementById(type === 'start' ? 'val-start' : 'val-end');
-        el.style.transform = 'scale(1.2)';
-        setTimeout(() => el.style.transform = 'scale(1)', 100);
+        const elId = type === 'start' ? 'val-start' : 'val-end';
+        const el = document.getElementById(elId);
+        if (el) {
+            el.style.transform = 'scale(1.2)';
+            setTimeout(() => el.style.transform = 'scale(1)', 100);
+        }
     }
 };
 
