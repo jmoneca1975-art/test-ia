@@ -14,7 +14,7 @@ const app = {
             const debugBanner = document.createElement('div');
             debugBanner.id = "debug-init";
             debugBanner.style = "position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;z-index:9999;padding:2px;pointer-events:none;";
-            debugBanner.textContent = "Booting v47...";
+            debugBanner.textContent = "Booting v50...";
             document.body.appendChild(debugBanner);
 
             // Inicializar Créditos
@@ -156,6 +156,8 @@ const app = {
             if (this.currentPdfPages && this.currentPdfPages.length > 0) {
                 console.log("Iniciando MODO BATCH para PDF...");
                 const totalPages = this.currentPdfPages.length;
+                
+                // Pedir exactamente el ratio necesario (min 1) para cubrir todo
                 const qPerPage = Math.max(1, Math.ceil(numQ / totalPages));
                 
                 for (let i = 0; i < totalPages; i++) {
@@ -165,22 +167,23 @@ const app = {
                     try {
                         const pageQuestions = await AIService.generateQuestions(page.text, qPerPage);
                         if (Array.isArray(pageQuestions)) {
-                            // Añadir meta de página a cada pregunta
-                            pageQuestions.forEach(q => q.explicacion = `(Pág. ${page.num}) ${q.explicacion}`);
-                            questions = questions.concat(pageQuestions);
+                            // IMPORTANTE: Tomar solo lo solicitado por página para evitar sesgo
+                            const batch = pageQuestions.slice(0, qPerPage);
+                            batch.forEach(q => q.explicacion = `(Pág. ${page.num}) ${q.explicacion}`);
+                            questions = questions.concat(batch);
                         }
                     } catch (e) {
                         console.warn(`Fallo en página ${page.num}, saltando...`, e);
                     }
-                    
-                    // Si ya tenemos suficientes preguntas, paramos
-                    if (questions.length >= numQ) break;
                 }
                 
-                // Recortar si sobran (por el redondeo)
-                questions = questions.slice(0, numQ);
+                // Mezclar resultados (Shuffle)
+                questions = questions.sort(() => Math.random() - 0.5);
                 
-                // Limpiar páginas procesadas para el próximo test
+                // YA NO recortamos. Dejamos que se acumule todo (Páginas * Preguntas/Pag)
+                console.log(`MODO BATCH Finalizado. Acumuladas ${questions.length} preguntas.`);
+                
+                // Limpiar páginas procesadas
                 this.currentPdfPages = null; 
             } else {
                 // MODO NORMAL (Texto libre o resumen)
