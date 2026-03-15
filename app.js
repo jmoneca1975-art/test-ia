@@ -249,28 +249,8 @@ const app = {
                 
             this.saveToLibrary(finalName, questions);
 
-            const isZeroClick = document.getElementById('chk-zero-click')?.checked;
-            
-            if (isZeroClick) {
-                overlay.classList.add('hidden');
-                ProgressTracker.updateStatus("🚀 ¡Generación completada! Iniciando descarga de Anki...");
-                
-                // Preparar selección para exportToAnki
-                const latestTestId = JSON.parse(localStorage.getItem('test_library') || '[]')[0]?.id;
-                if (latestTestId) {
-                    this.selectedTests.clear();
-                    this.selectedTests.add(latestTestId);
-                    
-                    // Ejecutar exportación sin alertas bloqueantes
-                    await this.exportToAnki(true); 
-                }
-                
-                // Volver al Home discretamente
-                this.switchView('home-view');
-            } else {
-                overlay.classList.add('hidden');
-                this.startQuiz();
-            }
+            overlay.classList.add('hidden');
+            this.startQuiz();
 
         } catch (err) {
             console.error("Error en generación:", err);
@@ -690,7 +670,7 @@ const app = {
                     { name: "OpcionesBotones", ord: 2, sticky: false, rtl: false, font: "Roboto", size: 15, media: [] },
                     { name: "Respuesta", ord: 3, sticky: false, rtl: false, font: "Roboto", size: 16, media: [] },
                     { name: "RespuestaLetra", ord: 4, sticky: false, rtl: false, font: "Roboto", size: 16, media: [] },
-                    { name: "Explicación", ord: 5, sticky: false, rtl: false, font: "Roboto", size: 15, media: [] },
+                    { name: "Explicacion", ord: 5, sticky: false, rtl: false, font: "Roboto", size: 15, media: [] },
                     { name: "MaxReps", ord: 6, sticky: false, rtl: false, font: "Roboto", size: 12, media: [] },
                     { name: "id", ord: 7, sticky: false, rtl: false, font: "Roboto", size: 12, media: [] },
                     { name: "Fuente", ord: 8, sticky: false, rtl: false, font: "Roboto", size: 12, media: [] }
@@ -767,16 +747,16 @@ const app = {
                                 <div class='question-header' style='color: #7f8c8d;'>📝 Pregunta</div>
                                 <div class='question-text' style='color: #7f8c8d;'>{{Pregunta}}</div>
                             </div>
-                            <div class='answer-box'>
-                                <div class='answer-header'>✅ Respuesta correcta</div>
-                                <div class='answer-text' style='font-size: 1.2em; font-weight: bold;'>{{Respuesta}}</div>
+                            <div class='answer-box' style='border-left: 4px solid #2ecc71; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 15px;'>
+                                <div class='answer-header' style='font-size: 16px; font-weight: bold; color: #2ecc71; margin-bottom: 10px; border-bottom: 1px solid #eee;'>✅ Respuesta correcta</div>
+                                <div class='answer-text' style='font-size: 1.2em; font-weight: bold; color: #2c3e50;'>{{Respuesta}}</div>
                             </div>
-                            {{#Explicación}}
-                            <div class='explanation-box'>
-                                <div class='explanation-header'>📚 Explicación</div>
-                                <div class='explanation-text'>{{Explicación}}</div>
+                            {{#Explicacion}}
+                            <div class='explanation-box' style='border-left: 4px solid #9b59b6; background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 15px;'>
+                                <div class='explanation-header' style='font-size: 16px; font-weight: bold; color: #9b59b6; margin-bottom: 10px; border-bottom: 1px solid #eee;'>📚 Explicación</div>
+                                <div class='explanation-text' style='color: #34495e; line-height: 1.6;'>{{Explicacion}}</div>
                             </div>
-                            {{/Explicación}}
+                            {{/Explicacion}}
                             <div class='source-info' style='text-align:center; font-size:12px; color:#888; margin-top:10px;'>Fuente: {{Fuente}} | ID: {{id}}</div>
                         </div>
                     ` 
@@ -820,8 +800,8 @@ const app = {
                     
                     q.opciones.forEach((opt, idx) => {
                         const letter = letters[idx];
-                        // LIMPIEZA: Quitar prefijos A), a), A., 1), etc. para evitar duplicidad
-                        const cleanOpt = opt.replace(/^[A-Ea-e][).]\s*|^[1-5][).]\s*/, '').trim();
+                        // LIMPIEZA AGRESIVA: Quitar prefijos tipo "A)", "a)", "A.", " a)", etc.
+                        const cleanOpt = opt.trim().replace(/^[A-Ea-e1-5][).]\s*/, '').trim();
                         
                         optionsText += `<div><strong style='color:#f39c12;'>${letter})</strong> ${cleanOpt}</div>`;
                         optionsButtons += `
@@ -834,7 +814,7 @@ const app = {
 
                     const correctLetter = letters[q.correcta] || "A";
                     // LIMPIEZA también para la respuesta detallada
-                    const cleanCorrectOpt = (q.opciones[q.correcta] || "").replace(/^[A-Ea-e][).]\s*|^[1-5][).]\s*/, '').trim();
+                    const cleanCorrectOpt = (q.opciones[q.correcta] || "").trim().replace(/^[A-Ea-e1-5][).]\s*/, '').trim();
                     const answerText = `<div><strong style='color:#2ecc71;'>${correctLetter})</strong> ${cleanCorrectOpt}</div>`;
                     
                     // Ensamblar flds (9 campos)
