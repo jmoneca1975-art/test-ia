@@ -588,12 +588,12 @@ const app = {
 
             const now = Math.floor(Date.now() / 1000);
             const mid = Date.now();
-            const did = 1; // Usamos el mazo 1 para máxima compatibilidad
+            const did = Date.now(); // Usamos el timestamp como ID de mazo único
 
-            // Definición de modelo (Anverso/Reverso)
+            // Modelo compatible (Basic)
             const models = {};
             models[mid.toString()] = {
-                id: mid, name: "Test IA Model", type: 0, mod: now, usn: -1,
+                id: mid, name: "TestIA_Model", type: 0, mod: now, usn: -1,
                 flds: [{ name: "Front", ord: 0, sticky: false, rtl: false, font: "Arial", size: 20 }, { name: "Back", ord: 1, sticky: false, rtl: false, font: "Arial", size: 20 }],
                 tmpls: [{ name: "Card 1", ord: 0, qfmt: "{{Front}}", afmt: "{{FrontSide}}\n\n<hr id=answer>\n\n{{Back}}" }],
                 css: ".card { font-family: arial; font-size: 20px; text-align: center; color: black; background-color: white; }",
@@ -602,22 +602,25 @@ const app = {
 
             const deckName = selectedData.length === 1 ? selectedData[0].name : "Test IA Pack";
             const decks = {
-                "1": { id: 1, mod: now, name: deckName, desc: "Generado con Test IA", collapsed: false, browserCollapsed: false, usn: -1, conf: 1 }
+                "1": { id: 1, mod: now, name: "Default", desc: "", collapsed: false, browserCollapsed: false, usn: -1, conf: 1 },
+                [did.toString()]: { id: did, mod: now, name: deckName, desc: "Generado con Test IA", collapsed: false, browserCollapsed: false, usn: -1, conf: 1 }
             };
 
             const dconf = {
                 "1": { id: 1, mod: now, name: "Default", usn: -1, lrns: [1, 10], rev: { perDay: 200 }, new: { perDay: 20 } }
             };
             
-            db.run("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, -1, 0, '{}', ?, ?, ?, '{}')", 
-                [now, now, now, JSON.stringify(models), JSON.stringify(decks), JSON.stringify(dconf)]
+            // Inserción en 'col' con configuración más completa
+            const conf = JSON.stringify({ nextPos: 1, est: true, activeDecks: [1], sortType: "noteFld", sortBackwards: false, addToCur: true });
+            db.run("INSERT INTO col VALUES (1, ?, ?, ?, 11, 0, -1, 0, ?, ?, ?, ?, '{}')", 
+                [now, now, now, conf, JSON.stringify(models), JSON.stringify(decks), JSON.stringify(dconf)]
             );
 
             const stmtNote = db.prepare("INSERT INTO notes VALUES (?, ?, ?, ?, -1, '', ?, ?, 0, 0, '')");
             const stmtCard = db.prepare("INSERT INTO cards VALUES (?, ?, ?, 0, ?, -1, 0, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')");
 
             let noteCount = 0;
-            const ts = Date.now();
+            const ts = Date.now(); // This 'ts' is used for note IDs, not deck ID.
 
             for (const test of selectedData) {
                 for (const q of test.data) {
@@ -625,13 +628,14 @@ const app = {
                     const guid = Math.random().toString(36).substring(2, 10);
                     
                     const front = `<b>${test.name}</b><br><br>${q.pregunta}`;
-                    let back = `Respuesta: <b>${q.respuesta}</b><br><br>`;
+                    let back = `Respuesta: <b>${q.respuesta}</b><br><br`;
                     if (q.opciones) back += "<ul><li>" + q.opciones.join("</li><li>") + "</li></ul>";
                     if (q.explicacion) back += `<br><div style='color:#6366f1; font-size: 0.9em;'>💡 ${q.explicacion}</div>`;
 
                     stmtNote.run([nid, guid, mid, now, `${front}\u001f${back}`, front]);
+                    // Importante: did es el mazo específico
                     stmtCard.run([nid + 1, nid, did, now, noteCount]);
-                    noteCount += 2; // Incrementar IDs de forma única
+                    noteCount += 2;
                 }
             }
 
@@ -646,16 +650,17 @@ const app = {
             zip.file("collection.anki2", binaryDb);
             zip.file("media", "{}");
 
-            const content = await zip.generateAsync({ type: "blob" });
+            const content = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.anki" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(content);
-            link.download = `TestIA_${Date.now()}.apkg`;
+            link.download = `Importar_en_Anki.apkg`;
             link.click();
 
             this.selectedTests.clear();
             this.renderHistory();
             overlay.classList.add('hidden');
-            setTimeout(() => alert("¡Archivo APKG generado! Ábrelo con AnkiDroid."), 200);
+            
+            alert("¡Archivo generado! Si no se abre solo, haz esto:\n\n1. Abre AnkiDroid.\n2. Pulsa los 3 puntos (arriba) -> Importar.\n3. Selecciona el archivo 'Importar_en_Anki.apkg' en tu carpeta Descargas.");
 
         } catch (err) {
             console.error("DEBUG ANKI:", err);
